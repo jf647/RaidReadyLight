@@ -1,0 +1,13 @@
+## Interface: 30900
+## Title: RRL (Raid Ready Light)
+## Notes: lets raid members indicate their ready status with a simple "traffic light" interface
+## Author: James FitzGibbon <addons@nadt.net>
+## Version: 0.1
+## SavedVariables: RRLDB
+
+embeds.xml
+                                 
+locale/RRL-enUS.lua
+
+Core.lua
+
