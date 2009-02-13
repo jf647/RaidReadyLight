@@ -5,8 +5,10 @@ TODO
 
 - replace static text with locales
 
-- make sure that args to max and interval are 
+- nuke list when you leave a raid
 
-- make sure that args to critical are in the raid
+- maintain raid member list as people join /leave
 
-- 
+- auto-set not ready when you go afk
+
+
