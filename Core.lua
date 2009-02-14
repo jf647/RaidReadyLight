@@ -8,7 +8,8 @@ RRL = LibStub("AceAddon-3.0"):NewAddon(
     "AceConsole-3.0",
     "AceComm-3.0",
     "AceEvent-3.0",
-	"AceTimer-3.0"
+	"AceTimer-3.0",
+	"AceHook-3.0"
 )
 
 -- external libs
@@ -78,6 +79,13 @@ RRL.options = {
             set  = 'SetInterval',
             get  = 'GetInterval',
         },
+		readycheck = {
+			type = 'toggle',
+			name = 'toggle readycheck',
+			desc = 'toggle auto-response to ready checks',
+			get  = 'GetReadyCheck',
+			set  = 'ToggleReadyCheck',
+		},
         r = {
             type = 'toggle',
             name = 'toggle ready',
@@ -122,8 +130,9 @@ RRL.options = {
 -- default profile
 RRL.defaults = {
     profile = {
-	    updateinterval = 10,
+	    updateinterval = 30,
 		maxnotready = 1,
+		readycheck_respond = 1,
 		critical = {},
 	},
 }
@@ -155,7 +164,7 @@ end
 
 -- disable
 function RRL:OnDisable()
-	RRL:UnRegisterAllEvents()
+	RRL:UnegisterAllEvents()
 end
 
 -- start doing what we need to do in a raid
@@ -172,15 +181,33 @@ function RRL:RRL_JOIN_RAID()
     send_timer = self:ScheduleRepeatingTimer('RRL_SEND_UPDATE', self.db.profile.updateinterval)
 	-- update the roster
 	self:RRL_UPDATE_ROSTER()
+	-- hook ready checks if requested to
+	if self.db.profile.readycheck_respond then
+		if not self:IsHooked("ShowReadyCheck") then
+			self:RawHook("ShowReadyCheck", true)
+		end
+		RRL:RegisterEvent("READY_CHECK")
+	else
+		if self:IsHooked("ShowReadyCheck") then
+			self:Unhook("ShowReadyCheck")
+		end
+		RRL:UnregisterEvent("READY_CHECK")
+	end
 end
 
 -- stop doing what we do in a raid
 function RRL:RRL_LEAVE_RAID()
 	active = 0
+	ldb_obj.text = "Not Active"
 	-- stop sending updates
 	self:CancelTimer(send_timer, true)
 	-- unregister receiving messages
-	self:UnRegisterComm("RRL1")
+	self:UnregisterComm("RRL1")
+	-- unhook ready checks
+	if self:IsHooked("ShowReadyCheck") then
+		self:Unhook("ShowReadyCheck")
+	end
+	RRL:UnregisterEvent("READY_CHECK")
 end
 
 -- check our raid status and raid roster
@@ -462,6 +489,48 @@ end
 function RRL:ToggleReady()
     readystate = not readystate
 	self:RRL_SEND_UPDATE()
+end
+
+-- get readycheck auto-response
+function RRL:GetReadyCheck()
+	return self.db.profile.readycheck_respond
+end
+
+-- toggle ready state
+function RRL:ToggleReadyCheck()
+    self.db.profile.readycheck_respond = not self.db.profile.readycheck_respond
+	if self.db.profile.readycheck_respond then
+		RRL:Print("will auto-respond to ready checks")
+		if inraid then
+			if not self:IsHooked("ShowReadyCheck") then
+				self:RawHook("ShowReadyCheck", true)
+			end
+			RRL:RegisterEvent("READY_CHECK")
+		end
+	else
+		RRL:Print("will not auto-respond to ready checks")
+		if inraid then
+			if self:IsHooked("ShowReadyCheck") then
+				self:Unhook("ShowReadyCheck")
+			end
+			RRL:UnregisterEvent("READY_CHECK")
+		end
+	end
+end
+
+-- respond to a ready check for the user
+function RRL:READY_CHECK()
+	if readystate then
+		ConfirmReadyCheck(true)
+	else
+		ConfirmReadyCheck(false)
+	end
+	RRL:Print("responded to a ready check for you")
+end
+
+-- play the ready check sound but do not show the dialog
+function RRL:ShowReadyCheck()
+	PlaySound("ReadyCheck")
 end
 
 --
