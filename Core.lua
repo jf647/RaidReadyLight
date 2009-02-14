@@ -40,6 +40,7 @@ function ldb_obj.OnClick(_, which)
 		else if "RightButton" == which then
 			DoReadyCheck()
 		end
+		end
 	end
 end
 
