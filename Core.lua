@@ -313,31 +313,69 @@ end
 
 -- lists critical members
 function RRL:ListCritical()
-    RRL:Print("ListCritical called")
-    --- XXX list members
+	RRL:Print("critical members:")
+    for k,v in pairs(self.db.profile.critical)
+	do
+		RRL:Print(k)
+	end
 end
 
 -- clears critical members
 function RRL:ClearCritical()
-    RRL:Print("ClearCritical called")
-    --- XXX clear members
+	self.db.profile.critical = {}
+	RRL:Print("cleared critical list")
 	self:CancelTimer(process_timer, true)
 	process_timer = self:ScheduleTimer('RRL_UPDATE_STATUS', 1)
 end
 
 -- adds a critical member
 function RRL:AddCritical(member)
-    RRL:Print("AddCritical called")
-    --- XXX add member
-	self:ScheduleTimer('RRL_UPDATE_STATUS', 1)
+	if nil ~= member then
+		if self.db.profile.critical.member then
+			RRL:Print("'"..member.."' was already on the critical list")
+		else
+			self.db.profile.critical.member = 1
+			RRL:Print("added '"..member.."' to the critical list")
+		end
+	else
+		member = UnitName('target')
+		if nil ~= member then
+			if self.db.profile.critical.member then
+				RRL:Print("'"..member.."' was already on the critical list")
+			else
+				self.db.profile.critical.member = 1
+				RRL:Print("added '"..member.."' to the critical list")
+			end
+		else
+			RRL:Print("usage: /rrl critical add name (uses target if no name)")
+		end
+	end
 	self:CancelTimer(process_timer, true)
 	process_timer = self:ScheduleTimer('RRL_UPDATE_STATUS', 1)
 end
 
 -- deletes a critical member
 function RRL:DelCritical(member)
-    RRL:Print("DelCritical called")
-    --- XXX delete member
+	if nil ~= member then
+		if self.db.profile.critical.member then
+			self.db.profile.critical.member = nil
+			RRL:Print("removed '"..member.."' from the critical list")
+		else
+			RRL:Print("'"..member.."' is not on the critical list")
+		end
+	else
+		member = UnitName('target')
+		if nil ~= member then
+			if self.db.profile.critical.member then
+				self.db.profile.critical.member = nil
+				RRL:Print("removed '"..member.."' from the critical list")
+			else
+				RRL:Print("'"..member.."' is not on the critical list")
+			end
+		else
+			RRL:Print("usage: /rrl critical del name (uses target if no name)")
+		end
+	end
 	self:CancelTimer(process_timer, true)
 	process_timer = self:ScheduleTimer('RRL_UPDATE_STATUS', 1)
 end
