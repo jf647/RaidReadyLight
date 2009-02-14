@@ -2,6 +2,7 @@
 -- $Id$
 --
 
+-- module setup
 RRL = LibStub("AceAddon-3.0"):NewAddon(
     "RRL",
     "AceConsole-3.0",
@@ -9,7 +10,38 @@ RRL = LibStub("AceAddon-3.0"):NewAddon(
     "AceEvent-3.0",
 	"AceTimer-3.0"
 )
-local L = LibStub("AceLocale-3.0"):GetLocale("RRL", true)
+
+-- external libs
+local crayon = LibStub("LibCrayon-3.0")
+
+-- locale setup
+-- local L = LibStub("AceLocale-3.0"):GetLocale("RRL", true)
+
+-- frame setup
+local ldb_tip
+local frame	= CreateFrame("Button", "RRL")
+local active = 0
+
+-- LDB setup
+local ldb_obj = LibStub("LibDataBroker-1.1"):NewDataObject("RRL", {
+	text = "Not Active",
+	icon = "Interface\\RAIDFRAME\\ReadyCheck-Ready.png",
+	ready = 0,
+	notready = 0,
+	critnotready = 0,
+	rostersize = 40,
+	notreadymembers = {},
+	status = false,
+})
+function ldb_obj.OnClick(_, which)
+	if 1 == active then
+		if "LeftButton" == which then
+			RRL:ToggleReady()
+		else if "RightButton" == which then
+			DoReadyCheck()
+		end
+	end
+end
 
 -- local variables
 local send_timer
@@ -52,28 +84,22 @@ RRL.options = {
             get  = 'GetReady',
 			set  = 'ToggleReady',
         },
-		dump = {
-			type = 'execute',
-			name = 'dump',
-			desc = 'dump',
-			func = 'DumpRoster',
-		},
         critical = {
 		    name = 'critical',
 			desc = 'manipulate list of members who must be ready',
             type = 'group',
             args = {
                 add = {
-                    type = 'execute',
+                    type = 'input',
                     name = 'add a critical member',
                     desc = 'add a member who must be ready',
-                    func = 'AddCritical',
+                    set = 'AddCritical',
                 },
                 del = {
-                    type = 'execute',
+                    type = 'input',
                     name = 'delete a critical member',
                     desc = 'delete a member who must be ready',
-                    func = 'DelCritical',
+                    set = 'DelCritical',
                 },
                 list = {
                     type = 'execute',
@@ -103,7 +129,6 @@ RRL.defaults = {
 
 -- init
 function RRL:OnInitialize()
-    RRL:Print("initializing")
     -- load saved variables
     self.db = LibStub("AceDB-3.0"):New("RRLDB", self.defaults)
 	-- add AceDB profile handler
@@ -115,73 +140,60 @@ end
 
 -- enable
 function RRL:OnEnable()
-    RRL:Print("enabling")
     -- register our events
-	RRL:Print("registering event PARTY_MEMBERS_CHANGED")
 	RRL:RegisterEvent("PARTY_MEMBERS_CHANGED", "RRL_CHECK_RAID")
-	RRL:Print("registering event RAID_ROSTER_UPDATE")
 	RRL:RegisterEvent("RAID_ROSTER_UPDATE", "RRL_CHECK_RAID")
-	RRL:Print("registering event RRL_JOIN_RAID")
 	RRL:RegisterEvent("RRL_JOIN_RAID")
-	RRL:Print("registering event RRL_LEAVE_RAID")
 	RRL:RegisterEvent("RRL_LEAVE_RAID")
 	-- are we in a raid
 	if GetNumRaidMembers() > 0 then
 		inraid = true
-		self:ScheduleTimer("RRL_JOIN_RAID", 0)
+		self:RRL_JOIN_RAID()
 	end
 end
 
 -- disable
 function RRL:OnDisable()
-    RRL:Print("disabling")
 	RRL:UnRegisterAllEvents()
 end
 
 -- start doing what we need to do in a raid
 function RRL:RRL_JOIN_RAID()
-	RRL:Print("joining raid")
+	active = 1
 	-- register our events
-	RRL:Print("registering event RRL_SEND_UPDATE")
     RRL:RegisterEvent("RRL_SEND_UPDATE")
-    RRL:Print("registering event RRL_PROCESS_UPDATE")
     RRL:RegisterEvent("RRL_PROCESS_UPDATE")
-	RRL:Print("registering event RRL_UPDATE_ROSTER")
     RRL:RegisterEvent("RRL_UPDATE_ROSTER")
-	RRL:Print("registering event RRL_UPDATE_STATUS")
     RRL:RegisterEvent("RRL_UPDATE_STATUS")
 	-- register to receive addon messages
-    RRL:Print("registering to receive RRL1 prefix addon messages")
     RRL:RegisterComm("RRL1")
 	-- start firing RRL_SEND_UPDATE every x seconds
-    RRL:Print("starting event timer")
     send_timer = self:ScheduleRepeatingTimer('RRL_SEND_UPDATE', self.db.profile.updateinterval)
 	-- update the roster
-	self:ScheduleTimer("RRL_UPDATE_ROSTER", 0)
+	self:RRL_UPDATE_ROSTER()
 end
 
 -- stop doing what we do in a raid
 function RRL:RRL_LEAVE_RAID()
-	RRL:Print("leaving raid")
+	active = 0
 	-- stop sending updates
 	self:CancelTimer(send_timer, true)
 	-- unregister receiving messages
-	self:UnRegiseterComm("RRL1")
+	self:UnRegisterComm("RRL1")
 end
 
 -- check our raid status and raid roster
 function RRL:RRL_CHECK_RAID()
-	RRL:Print("processing RRL_CHECK_RAID event")
 	if GetNumRaidMembers() > 0 then
 		if not inraid then
 			inraid = true
-			self:Scheduletimer('RRL_JOIN_RAID')
+			self:RRL_JOIN_RAID()
 		end
-		self:ScheduleTimer("RRL_UPDATE_ROSTER", 0)
+		self:RRL_UPDATE_ROSTER()
 	else
 		if inraid then
 			inraid = false
-			self:ScheduleTimer('RRL_LEAVE_RAID')
+			self:RRL_LEAVE_RAID()
 		end
 	end
 end
@@ -192,31 +204,27 @@ function RRL:OnCommReceived(prefix, message, distribution, sender)
     local update = {}
 	update.sender = sender
 	update.message = message
-    self:ScheduleTimer('RRL_PROCESS_UPDATE', 0, update)
+    self:RRL_PROCESS_UPDATE(update)
 end
 
 -- process a RRL_SEND_UPDATE event
 function RRL:RRL_SEND_UPDATE()
-    RRL:Print("processing RRL_SEND_UPDATE event")
 	local message = "1"
 	if not readystate then
 		message = "0"
 	end
-	RRL:Print("sending message '"..message.."'")
     RRL:SendCommMessage("RRL1", message, "RAID")
 end
 
 -- process a RRL_PROCESS_UPDATE event
 function RRL:RRL_PROCESS_UPDATE(update)
-    RRL:Print("processing RRL_PROCESS_UPDATE event")
-	RRL:Print("received msg = '"..update.message.."' from '"..update.sender.."'");
 	local senderstate = true
 	if "0" == update.message then
 		senderstate = false
 	end
-	if roster[update.member] then
-		local oldstate = roster[update.sender]
-		roster[update.sender] = senderstate
+	oldstate = roster[update.member]
+	roster[update.sender] = senderstate
+	if nil ~= oldstate then
 		if oldstate ~= senderstate then
 			self:CancelTimer(process_timer, true)
 			process_timer = self:ScheduleTimer('RRL_UPDATE_STATUS', 1)
@@ -229,14 +237,12 @@ end
 
 -- process a RRL_UPDATE_ROSTER event
 function RRL:RRL_UPDATE_ROSTER()
-	RRL:Print("processing RRL_UPDATE_ROSTER event")
 	local newroster = {}
 	for i = 1, 40, 1
 	do
 		local name, rank, subgroup, level, class, fileName, 
 			zone, online, isDead, role, isML = GetRaidRosterInfo(i)
 		if name then
-			RRL:Print("name",name,"online",online)
 			if online and roster[name] and true == roster[name] then
 				newroster[name] = true
 			else
@@ -245,45 +251,113 @@ function RRL:RRL_UPDATE_ROSTER()
 		end
 	end
 	roster = newroster
+	self:RRL_UPDATE_STATUS()
 end
 
 -- process an UPDATE_STATUS event
 function RRL:RRL_UPDATE_STATUS()
-	RRL:Print("updating status")
+	local numready = 0
 	local numnotready = 0
+	local rostersize = 0
+	local numcriticalnotready = 0
+	ldb_obj.notreadymembers = {}
 	lightstatus = true
 	for k,v in pairs(roster) do
+	    rostersize = rostersize + 1
 		if not v then
 			numnotready = numnotready + 1
-			if self.db.profile.critical.k then
-				RRL:Print("critical member "..k.." not ready, lightstatus now false")
+			ldb_obj.notreadymembers[k] = 1
+			if self.db.profile.critical[k] then
+				ldb_obj.notreadymembers[k] = 2
+				numcriticalnotready = numcriticalnotready + 1
 				lightstatus = false
 			end
+		else
+			numready = numready + 1
 		end
 	end
 	if numnotready > self.db.profile.maxnotready then
-		RRL:Print("notready ("..numnotready..") exceeds maxnotready ("..self.db.profile.maxnotready.."), lightstatus now false")
 		lightstatus = false
 	end
-	RRL:Print("lightstatus is",lightstatus)
+	ldb_obj.ready = numready
+	ldb_obj.notready = numnotready
+	ldb_obj.critnotready = numcriticalnotready
+	ldb_obj.rostersize = rostersize
+	local youstring
+	local raidstring
+	local countstring
+	if readystate then
+		youstring = crayon:Green("YOU")
+	else
+		youstring = crayon:Red("YOU")
+	end
+	if lightstatus then
+		ldb_obj.status = true
+		ldb_obj.icon = "Interface\\RAIDFRAME\\ReadyCheck-Ready.png"
+		raidstring = crayon:Green("RAID")
+	else
+		ldb_obj.status = false
+		ldb_obj.icon = "Interface\\RAIDFRAME\\ReadyCheck-NotReady.png"
+		raidstring = crayon:Red("RAID")
+	end
+	countstring = numready.."/"..rostersize
+	if numcriticalnotready > 0 then
+		countstring = countstring .. "*"
+	end
+	ldb_obj.text = youstring .. "/" .. raidstring .. " " .. crayon:White(countstring)
 end
 
--- dump the roster
-function RRL:DumpRoster()
-	for k,v in pairs(roster) do
-		RRL:Print(k,v)
+-- display the LDB tooltip
+function ldb_obj.OnTooltipShow(tip)
+	if not ldb_tip then
+		ldb_tip = tip
 	end
+	tip:ClearLines()
+	tip:AddLine(crayon:White("RRL: Raid Ready Light"))
+	tip:AddLine(" ")
+	if 0 == active then
+		tip:AddLine(crayon:White("Only active when in a raid"))
+	else
+		if ldb_obj.status then
+			tip:AddDoubleLine(crayon:White("Raid:"), crayon:Green("READY"))
+		else
+			tip:AddDoubleLine(crayon:White("Raid:"), crayon:Red("NOT READY"))
+		end
+		if readystate then
+			tip:AddDoubleLine(crayon:White("You:"), crayon:Green("READY"))
+		else
+			tip:AddDoubleLine(crayon:White("You:"), crayon:Red("NOT READY"))
+		end
+		tip:AddDoubleLine(crayon:White("Ready:"), crayon:Colorize(crayon:GetThresholdHexColor(ldb_obj.ready,ldb_obj.rostersize), ldb_obj.ready)
+			.. "/"..crayon:Colorize(crayon:GetThresholdHexColor(ldb_obj.rostersize,ldb_obj.rostersize), ldb_obj.rostersize))
+		tip:AddDoubleLine(crayon:White("Not Ready:"), crayon:Red(ldb_obj.notready) .. "/".. crayon:Green(RRL.db.profile.maxnotready))
+		tip:AddDoubleLine(crayon:White("Critical: "), crayon:Red(ldb_obj.critnotready))
+		if ldb_obj.notready then
+			tip:AddLine(" ")
+			tip:AddLine(crayon:White("Not Ready:"))
+			for k,v in pairs(ldb_obj.notreadymembers)
+			do
+				if 2 == v then
+					tip:AddLine(crayon:Red(k))
+				else
+					tip:AddLine(crayon:Yellow(k))
+				end
+			end
+		end
+		tip:AddLine(" ")
+		tip:AddLine(crayon:White("Left-click to change your status"))
+		tip:AddLine(crayon:White("Right-click to do a ready check"))
+	end
+	tip:Show()
 end
 
 -- get the max number of not ready members
 function RRL:GetMax()
-    RRL:Print("GetMax called")
     return self.db.profile.maxnotready
 end
 
 -- set the max number of not ready members
 function RRL:SetMax(info, max)
-    RRL:Print("SetMax called")
 	if max < 0 or max > 40 then
 		RRL:Print("max ready members range: 0-40")
 	else
@@ -295,13 +369,11 @@ end
 
 -- get the update interval
 function RRL:GetInterval()
-    RRL:Print("GetInterval called")
     return self.db.profile.updateinterval
 end
 
 -- set the update interval
 function RRL:SetInterval(info, interval)
-    RRL:Print("SetInterval called")
 	if interval < 1 or interval > 600 then
 		RRL:Print("interval range: 1-600")
 	else
@@ -313,7 +385,7 @@ end
 
 -- lists critical members
 function RRL:ListCritical()
-	RRL:Print("critical members:")
+	RRL:Print("Members who must be ready:")
     for k,v in pairs(self.db.profile.critical)
 	do
 		RRL:Print(k)
@@ -322,28 +394,28 @@ end
 
 -- clears critical members
 function RRL:ClearCritical()
+	RRL:Print("critical members list has been cleared")
 	self.db.profile.critical = {}
-	RRL:Print("cleared critical list")
 	self:CancelTimer(process_timer, true)
 	process_timer = self:ScheduleTimer('RRL_UPDATE_STATUS', 1)
 end
 
 -- adds a critical member
-function RRL:AddCritical(member)
-	if nil ~= member then
-		if self.db.profile.critical.member then
+function RRL:AddCritical(info, member)
+	if "" ~= member then
+		if self.db.profile.critical[member] then
 			RRL:Print("'"..member.."' was already on the critical list")
 		else
-			self.db.profile.critical.member = 1
+			self.db.profile.critical[member] = 1
 			RRL:Print("added '"..member.."' to the critical list")
 		end
 	else
 		member = UnitName('target')
 		if nil ~= member then
-			if self.db.profile.critical.member then
+			if self.db.profile.critical[member] then
 				RRL:Print("'"..member.."' was already on the critical list")
 			else
-				self.db.profile.critical.member = 1
+				self.db.profile.critical[member] = 1
 				RRL:Print("added '"..member.."' to the critical list")
 			end
 		else
@@ -355,10 +427,10 @@ function RRL:AddCritical(member)
 end
 
 -- deletes a critical member
-function RRL:DelCritical(member)
-	if nil ~= member then
-		if self.db.profile.critical.member then
-			self.db.profile.critical.member = nil
+function RRL:DelCritical(info, member)
+	if "" ~= member then
+		if self.db.profile.critical[member] then
+			self.db.profile.critical[member] = nil
 			RRL:Print("removed '"..member.."' from the critical list")
 		else
 			RRL:Print("'"..member.."' is not on the critical list")
@@ -366,8 +438,8 @@ function RRL:DelCritical(member)
 	else
 		member = UnitName('target')
 		if nil ~= member then
-			if self.db.profile.critical.member then
-				self.db.profile.critical.member = nil
+			if self.db.profile.critical[member] then
+				self.db.profile.critical[member] = nil
 				RRL:Print("removed '"..member.."' from the critical list")
 			else
 				RRL:Print("'"..member.."' is not on the critical list")
@@ -382,16 +454,13 @@ end
 
 -- get ready state
 function RRL:GetReady()
-	RRL:Print("GetReady called")
 	return readystate
 end
 
 -- toggle ready state
 function RRL:ToggleReady()
-    RRL:Print("ToggleReady called");
     readystate = not readystate
-	RRL:Print("ready state is now", readystate)
-	self:ScheduleTimer('RRL_SEND_UPDATE', 0)
+	self:RRL_SEND_UPDATE()
 end
 
 --

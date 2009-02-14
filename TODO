@@ -1,14 +1,10 @@
 TODO
 ====
 
-- only enable on joining a raid / disable on leaving a raid
-
 - replace static text with locales
 
-- nuke list when you leave a raid
+- don't call update status if status hasn't changed
 
-- maintain raid member list as people join /leave
+- add another state (assumed ready) for people who don't have RRL
 
-- auto-set not ready when you go afk
-
-
+- 

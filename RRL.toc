@@ -7,7 +7,5 @@
 
 embeds.xml
                                  
-locale/RRL-enUS.lua
-
 Core.lua
 

@@ -10,6 +10,8 @@
   <Include file="Libs\AceComm-3.0\AceComm-3.0.xml"/>
   <Include file="Libs\AceLocale-3.0\AceLocale-3.0.xml"/>
   
+  <Script file="Libs\LibCrayon-3.0\LibCrayon-3.0.lua"/>
+  
   <Script file="Libs\LibDataBroker-1.1\LibDataBroker-1.1.lua"/>
   
 </Ui>
