@@ -7,4 +7,6 @@ TODO
 
 - add another state (assumed ready) for people who don't have RRL
 
+- when state is toggled via /rrl r, print output to console
+
 - 
