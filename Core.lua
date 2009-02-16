@@ -20,7 +20,6 @@ local crayon = LibStub("LibCrayon-3.0")
 
 -- frame setup
 local ldb_tip
-local frame	= CreateFrame("Button", "RRL")
 local active = 0
 
 -- LDB setup
@@ -37,7 +36,7 @@ local ldb_obj = LibStub("LibDataBroker-1.1"):NewDataObject("RRL", {
 function ldb_obj.OnClick(_, which)
 	if 1 == active then
 		if "LeftButton" == which then
-			RRL:ToggleReady()
+			RRL:ToggleReadyLDB()
 		else if "RightButton" == which then
 			DoReadyCheck()
 		end
@@ -91,7 +90,7 @@ RRL.options = {
             name = 'toggle ready',
             desc = 'toggle your ready state',
             get  = 'GetReady',
-			set  = 'ToggleReady',
+			set  = 'ToggleReadySlash',
         },
         critical = {
 		    name = 'critical',
@@ -268,7 +267,7 @@ function RRL:RRL_UPDATE_ROSTER()
 	local newroster = {}
 	for i = 1, 40, 1
 	do
-		local name, rank, subgroup, level, class, fileName, 
+		local name, rank, subgroup, level, class, fileName,
 			zone, online, isDead, role, isML = GetRaidRosterInfo(i)
 		if name then
 			if online and roster[name] and true == roster[name] then
@@ -486,7 +485,18 @@ function RRL:GetReady()
 end
 
 -- toggle ready state
-function RRL:ToggleReady()
+function RRL:ToggleReadyLDB()
+    readystate = not readystate
+	self:RRL_SEND_UPDATE()
+end
+
+-- toggle ready state (slash command)
+function RRL:ToggleReadySlash()
+    if readystate then
+		RRL:Print("setting your state to", crayon:Red("NOT READY"))
+	else
+		RRL:Print("setting your state to", crayon:Green("READY"))
+	end
     readystate = not readystate
 	self:RRL_SEND_UPDATE()
 end
