@@ -13,13 +13,15 @@ RRL = LibStub("AceAddon-3.0"):NewAddon(
 )
 
 -- external libs
-local crayon = LibStub("LibCrayon-3.0")
+local c = LibStub("LibCrayon-3.0")
 
 -- locale setup
--- local L = LibStub("AceLocale-3.0"):GetLocale("RRL", true)
+local L = LibStub("AceLocale-3.0"):GetLocale("RRL", true)
 
--- frame setup
+-- LDB setup
 local ldb_tip
+
+-- globals
 local active = 0
 
 -- LDB setup
@@ -36,7 +38,7 @@ local ldb_obj = LibStub("LibDataBroker-1.1"):NewDataObject("RRL", {
 function ldb_obj.OnClick(_, which)
 	if 1 == active then
 		if "LeftButton" == which then
-			RRL:ToggleReadyLDB()
+			RRL:ToggleReady(false)
 		else if "RightButton" == which then
 			DoReadyCheck()
 		end
@@ -59,14 +61,31 @@ RRL.options = {
     type = 'group',
     args = {
         max = {
-            type = 'range',
-            name = 'get/set max not ready',
-            desc = 'get or set the maximum number of not ready members',
-			min  = 0,
-			max  = 40,
-			step = 1,
-            set  = 'SetMax',
-            get  = 'GetMax',
+			name = 'maxnotready',
+			desc = 'set maximum not ready members',
+			type = 'group',
+			args = {
+				normal = {
+					type = 'range',
+					name = 'get/set max not ready (normal)',
+					desc = 'get or set the maximum number of not ready members (normal raids)',
+					min  = 0,
+					max  = 10,
+					step = 1,
+					set  = function(info, value) RRL:SetMax('normal', 0, 10, value) end,
+					get  = function(info) RRL:GetMax('normal') end,
+				},
+				heroic = {
+					type = 'range',
+					name = 'get/set max not ready (heroic)',
+					desc = 'get or set the maximum number of not ready members (heroic raids)',
+					min  = 0,
+					max  = 25,
+					step = 1,
+					set  = function(info, value) RRL:SetMax('heroic', 0, 25, value) end,
+					get  = function(info) RRL:GetMax('heroic') end,
+				},
+			},
         },
         interval = {
             type = 'range',
@@ -90,7 +109,7 @@ RRL.options = {
             name = 'toggle ready',
             desc = 'toggle your ready state',
             get  = 'GetReady',
-			set  = 'ToggleReadySlash',
+			set  = function(info) RRL:ToggleReady(true) end,
         },
         critical = {
 		    name = 'critical',
@@ -130,7 +149,10 @@ RRL.options = {
 RRL.defaults = {
     profile = {
 	    updateinterval = 30,
-		maxnotready = 1,
+		maxnotready = {
+			normal = 1,
+			heroic = 3,
+		},
 		readycheck_respond = 1,
 		critical = {},
 	},
@@ -139,7 +161,7 @@ RRL.defaults = {
 -- init
 function RRL:OnInitialize()
     -- load saved variables
-    self.db = LibStub("AceDB-3.0"):New("RRLDB", self.defaults)
+    self.db = LibStub("AceDB-3.0"):New("RRLDB", self.defaults, 'Default')
 	-- add AceDB profile handler
 	self.options.args.profile = LibStub("AceDBOptions-3.0"):GetOptionsTable(self.db)
 	self.options.args.profile.order = 200
@@ -314,24 +336,24 @@ function RRL:RRL_UPDATE_STATUS()
 	local raidstring
 	local countstring
 	if readystate then
-		youstring = crayon:Green("YOU")
+		youstring = c:Green("YOU")
 	else
-		youstring = crayon:Red("YOU")
+		youstring = c:Red("YOU")
 	end
 	if lightstatus then
 		ldb_obj.status = true
 		ldb_obj.icon = "Interface\\RAIDFRAME\\ReadyCheck-Ready.png"
-		raidstring = crayon:Green("RAID")
+		raidstring = c:Green("RAID")
 	else
 		ldb_obj.status = false
 		ldb_obj.icon = "Interface\\RAIDFRAME\\ReadyCheck-NotReady.png"
-		raidstring = crayon:Red("RAID")
+		raidstring = c:Red("RAID")
 	end
 	countstring = numready.."/"..rostersize
 	if numcriticalnotready > 0 then
 		countstring = countstring .. "*"
 	end
-	ldb_obj.text = youstring .. "/" .. raidstring .. " " .. crayon:White(countstring)
+	ldb_obj.text = youstring .. "/" .. raidstring .. " " .. c:White(countstring)
 end
 
 -- display the LDB tooltip
@@ -340,55 +362,55 @@ function ldb_obj.OnTooltipShow(tip)
 		ldb_tip = tip
 	end
 	tip:ClearLines()
-	tip:AddLine(crayon:White("RRL: Raid Ready Light"))
+	tip:AddLine(c:White("RRL: Raid Ready Light"))
 	tip:AddLine(" ")
 	if 0 == active then
-		tip:AddLine(crayon:White("Only active when in a raid"))
+		tip:AddLine(c:White("Only active when in a raid"))
 	else
 		if ldb_obj.status then
-			tip:AddDoubleLine(crayon:White("Raid:"), crayon:Green("READY"))
+			tip:AddDoubleLine(c:White("Raid:"), c:Green("READY"))
 		else
-			tip:AddDoubleLine(crayon:White("Raid:"), crayon:Red("NOT READY"))
+			tip:AddDoubleLine(c:White("Raid:"), c:Red("NOT READY"))
 		end
 		if readystate then
-			tip:AddDoubleLine(crayon:White("You:"), crayon:Green("READY"))
+			tip:AddDoubleLine(c:White("You:"), c:Green("READY"))
 		else
-			tip:AddDoubleLine(crayon:White("You:"), crayon:Red("NOT READY"))
+			tip:AddDoubleLine(c:White("You:"), c:Red("NOT READY"))
 		end
-		tip:AddDoubleLine(crayon:White("Ready:"), crayon:Colorize(crayon:GetThresholdHexColor(ldb_obj.ready,ldb_obj.rostersize), ldb_obj.ready)
-			.. "/"..crayon:Colorize(crayon:GetThresholdHexColor(ldb_obj.rostersize,ldb_obj.rostersize), ldb_obj.rostersize))
-		tip:AddDoubleLine(crayon:White("Not Ready:"), crayon:Red(ldb_obj.notready) .. "/".. crayon:Green(RRL.db.profile.maxnotready))
-		tip:AddDoubleLine(crayon:White("Critical: "), crayon:Red(ldb_obj.critnotready))
+		tip:AddDoubleLine(c:White("Ready:"), c:Colorize(c:GetThresholdHexColor(ldb_obj.ready,ldb_obj.rostersize), ldb_obj.ready)
+			.. "/"..c:Colorize(c:GetThresholdHexColor(ldb_obj.rostersize,ldb_obj.rostersize), ldb_obj.rostersize))
+		tip:AddDoubleLine(c:White("Not Ready:"), c:Red(ldb_obj.notready) .. "/".. c:Green(RRL.db.profile.maxnotready))
+		tip:AddDoubleLine(c:White("Critical: "), c:Red(ldb_obj.critnotready))
 		if ldb_obj.notready then
 			tip:AddLine(" ")
-			tip:AddLine(crayon:White("Not Ready:"))
+			tip:AddLine(c:White("Not Ready:"))
 			for k,v in pairs(ldb_obj.notreadymembers)
 			do
 				if 2 == v then
-					tip:AddLine(crayon:Red(k))
+					tip:AddLine(c:Red(k))
 				else
-					tip:AddLine(crayon:Yellow(k))
+					tip:AddLine(c:Yellow(k))
 				end
 			end
 		end
 		tip:AddLine(" ")
-		tip:AddLine(crayon:White("Left-click to change your status"))
-		tip:AddLine(crayon:White("Right-click to do a ready check"))
+		tip:AddLine(c:White("Left-click to change your status"))
+		tip:AddLine(c:White("Right-click to do a ready check"))
 	end
 	tip:Show()
 end
 
 -- get the max number of not ready members
-function RRL:GetMax()
-    return self.db.profile.maxnotready
+function RRL:GetMax(type)
+    return self.db.profile.maxnotready[type]
 end
 
 -- set the max number of not ready members
-function RRL:SetMax(info, max)
-	if max < 0 or max > 40 then
-		RRL:Print("max ready members range: 0-40")
+function RRL:SetMax(type, min, max, value)
+	if value < min or value > max then
+		RRL:Print("max not ready members for", type, "is", min .. '-' .. max)
 	else
-		self.db.profile.maxnotready = max
+		self.db.profile.maxnotready[type] = value
 		self:CancelTimer(process_timer, true)
 		process_timer = self:ScheduleTimer('RRL_UPDATE_STATUS', 1)
 	end
@@ -485,19 +507,15 @@ function RRL:GetReady()
 end
 
 -- toggle ready state
-function RRL:ToggleReadyLDB()
+function RRL:ToggleReady(toconsole)
     readystate = not readystate
-	self:RRL_SEND_UPDATE()
-end
-
--- toggle ready state (slash command)
-function RRL:ToggleReadySlash()
-    if readystate then
-		RRL:Print("setting your state to", crayon:Red("NOT READY"))
-	else
-		RRL:Print("setting your state to", crayon:Green("READY"))
+	if toconsole then
+		if readystate then
+			RRL:Print("setting your state to", c:Green("READY"))
+		else
+			RRL:Print("setting your state to", c:Red("NOT READY"))
+		end
 	end
-    readystate = not readystate
 	self:RRL_SEND_UPDATE()
 end
 
@@ -532,10 +550,11 @@ end
 function RRL:READY_CHECK()
 	if readystate then
 		ConfirmReadyCheck(true)
+		RRL:Print("responded", c:Green('READY'), "to a ready check for you")
 	else
+		RRL:Print("responded", c:Red('NOT READY'), "to a ready check for you")
 		ConfirmReadyCheck(false)
 	end
-	RRL:Print("responded to a ready check for you")
 end
 
 -- play the ready check sound but do not show the dialog

@@ -1,11 +1,19 @@
 TODO
 ====
 
+- find out how to test for key existence in LUA tables, not truthiness of the value (or autovivifying the element)
+
+- find out how to split a string into an array
+
 - replace static text with locales
 
 - don't call update status if status hasn't changed
 
-- have a different max not ready for normal and heroics raids
+* have a different max not ready for normal and heroics raids
+
+* default profile to global
+
+- add configuration dialog in interface menu
 
 - move roster to a more complex structure
 
@@ -45,4 +53,3 @@ TODO
 - in the tooltip, need to break down the categories above
 
 - max not ready is compared against those with RRL only
-
