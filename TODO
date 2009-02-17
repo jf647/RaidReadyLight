@@ -5,6 +5,8 @@ TODO
 
 - don't call update status if status hasn't changed
 
+- have a different max not ready for normal and heroics raids
+
 - move roster to a more complex structure
 
 - add another state (assumed ready) for people who don't have RRL
