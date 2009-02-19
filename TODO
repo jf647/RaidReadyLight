@@ -5,9 +5,23 @@ TODO
 
 - find out how to split a string into an array
 
+- find out the proper way to do LUA constants
+
+- find out how to get the current time of day (epoch seconds)
+
+- find out how to do debug and to enable debug in an addon
+
+- figure out how to send an addon message to a specific member
+
+- figure out how to tell the dungeon difficulty level
+
+- register to receive difficulty level changes?  or just call API each time?
+
 - replace static text with locales
 
-- don't call update status if status hasn't changed
+* don't call update status if status hasn't changed (req key stuff above)
+
+- make sure that events are being registered/unregistered symmetrically
 
 * have a different max not ready for normal and heroics raids
 
@@ -15,41 +29,41 @@ TODO
 
 - add configuration dialog in interface menu
 
-- move roster to a more complex structure
+* move roster to a more complex structure
 
-- add another state (assumed ready) for people who don't have RRL
+	* add another state (assumed ready) for people who don't have RRL
 
-- add message type to addon message (use AceSerializer?)
+	* add message type to addon message (use AceSerializer?)
 
-- add ping and pong messages, sent directly from one member to another
+	* add ping and pong messages, sent directly from one member to another
 
-- states: unknown, ok, pinged, norrl
+	* states: unknown, ok, pinged, norrl
 
-- ready state: true or false (irrelevant unless state = ok)
+	* ready state: true or false (irrelevant unless state = ok)
 
-- when adding someone to the roster for the first time, set state to unknown and and schedule timer
-  for 3 * interval to do a ping
+	* when adding someone to the roster for the first time, set state to unknown and and schedule timer
+	  for 3 * interval to do a ping
 
-- when receiving an update from someone, set state to ok
+	* when receiving an update from someone, set state to ok
 
-- need timestamp when someone was last active (for unknown, time when added to roster,
-  for ok time of last status message, for pinged time of ping sent)
-  
-- when ping event fires, mark as pinged, send whisper message to the user and schedule a timer for
-  2 * interval to mark as norrl
-  
-- status report needs to show:
+	- need timestamp when someone was last active (for unknown, time when added to roster,
+	  for ok time of last status message, for pinged time of ping sent)
+	  
+	- when ping event fires, mark as pinged, send whisper message to the user and schedule a timer for
+	  2 * interval to mark as norrl
+	  
+	* status report needs to show:
 
-  - people with RRL who are ready
-  
-  - people with RRL who are not ready
-  
-  - people without RRL
-  
-  - people who are unknown
-  
-- for the LDB status line, need to show ready of roster total
+	  - people with RRL who are ready
+	  
+	  - people with RRL who are not ready
+	  
+	  - people without RRL
+	  
+	  - people who are unknown
+	  
+	- for the LDB status line, need to show ready of roster total
 
-- in the tooltip, need to break down the categories above
+	- in the tooltip, need to break down the categories above
 
-- max not ready is compared against those with RRL only
+	- max not ready is compared against those with RRL only

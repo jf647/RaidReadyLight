@@ -12,31 +12,44 @@ RRL = LibStub("AceAddon-3.0"):NewAddon(
 	"AceHook-3.0"
 )
 
+-- constants
+local RRL_STATE_OK = 0
+local RRL_STATE_UNKNOWN = 1
+local RRL_STATE_PINGED = 2
+local RRL_STATE_NORRL = 3
+
 -- external libs
 local c = LibStub("LibCrayon-3.0")
 
 -- locale setup
 local L = LibStub("AceLocale-3.0"):GetLocale("RRL", true)
 
--- LDB setup
+-- local variables
+local send_timer
+local process_timer
 local ldb_tip
 
--- globals
-local active = 0
+-- state variables
+RRL.active = false
+RRL.inraid  = false
+RRL.raidready = false
+RRL.selfready = false
+RRL.count = {
+	ready = 0,
+	notready = 0,
+	notready_crit = 0,
+	total = 40,
+	unknown = 0,
+}
+RRL.members = {}
 
 -- LDB setup
 local ldb_obj = LibStub("LibDataBroker-1.1"):NewDataObject("RRL", {
 	text = "Not Active",
 	icon = "Interface\\RAIDFRAME\\ReadyCheck-Ready.png",
-	ready = 0,
-	notready = 0,
-	critnotready = 0,
-	rostersize = 40,
-	notreadymembers = {},
-	status = false,
 })
 function ldb_obj.OnClick(_, which)
-	if 1 == active then
+	if true == RRL.active then
 		if "LeftButton" == which then
 			RRL:ToggleReady(false)
 		else if "RightButton" == which then
@@ -45,14 +58,6 @@ function ldb_obj.OnClick(_, which)
 		end
 	end
 end
-
--- local variables
-local send_timer
-local process_timer
-local readystate = false
-local roster = {}
-local inraid = false
-local lightstatus = false
 
 -- slash commands
 RRL.options = {
@@ -176,11 +181,8 @@ function RRL:OnEnable()
 	RRL:RegisterEvent("RAID_ROSTER_UPDATE", "RRL_CHECK_RAID")
 	RRL:RegisterEvent("RRL_JOIN_RAID")
 	RRL:RegisterEvent("RRL_LEAVE_RAID")
-	-- are we in a raid
-	if GetNumRaidMembers() > 0 then
-		inraid = true
-		self:RRL_JOIN_RAID()
-	end
+	-- are we in a raid?
+	self:RRL_CHECK_RAID()
 end
 
 -- disable
@@ -190,15 +192,17 @@ end
 
 -- start doing what we need to do in a raid
 function RRL:RRL_JOIN_RAID()
-	active = 1
+	self.active = true
 	-- register our events
     RRL:RegisterEvent("RRL_SEND_UPDATE")
     RRL:RegisterEvent("RRL_PROCESS_UPDATE")
     RRL:RegisterEvent("RRL_UPDATE_ROSTER")
     RRL:RegisterEvent("RRL_UPDATE_STATUS")
+	RRL:RegisterEvent("RRL_SEND_PING")
+	RRL:RegisterEvent("RRL_MARK_NORRL")
 	-- register to receive addon messages
     RRL:RegisterComm("RRL1")
-	-- start firing RRL_SEND_UPDATE every x seconds
+	-- start firing RRL_SEND_UPDATE
     send_timer = self:ScheduleRepeatingTimer('RRL_SEND_UPDATE', self.db.profile.updateinterval)
 	-- update the roster
 	self:RRL_UPDATE_ROSTER()
@@ -218,7 +222,7 @@ end
 
 -- stop doing what we do in a raid
 function RRL:RRL_LEAVE_RAID()
-	active = 0
+	self.active = false
 	ldb_obj.text = "Not Active"
 	-- stop sending updates
 	self:CancelTimer(send_timer, true)
@@ -234,14 +238,14 @@ end
 -- check our raid status and raid roster
 function RRL:RRL_CHECK_RAID()
 	if GetNumRaidMembers() > 0 then
-		if not inraid then
-			inraid = true
+		if not self.inraid then
+			self.inraid = true
 			self:RRL_JOIN_RAID()
 		end
 		self:RRL_UPDATE_ROSTER()
 	else
-		if inraid then
-			inraid = false
+		if self.inraid then
+			self.inraid = false
 			self:RRL_LEAVE_RAID()
 		end
 	end
@@ -249,98 +253,102 @@ end
 
 -- process a received addon message
 function RRL:OnCommReceived(prefix, message, distribution, sender)
-    -- process the incoming message
-    local update = {}
-	update.sender = sender
-	update.message = message
-    self:RRL_PROCESS_UPDATE(update)
+    -- split the message into msgtype, data
+	local msgtype, data = ...
+	-- switch based on msgtype
+	if 'READY' == msgtype or 'PONG' == msgtype then
+		local senderready = true
+		if '0' == data then
+			senderready = false
+		end
+		local oldready = self.members[sender].ready,
+		self.members[sender] = {
+			state = RRL_STATE_OK,
+			ready = senderready,
+			last = GetTime(),
+		}
+		if oldready ~= ready then
+			self:CancelTimer(process_timer, true)
+			process_timer = self:ScheduleTimer('RRL_UPDATE_STATUS', 1)
+		end
+	else if 'PING' == msgtype then
+		local message = "PONG 1"
+		if false == self.selfready then
+			message = "PONG 0"
+		end
+		RRL:SendCommMessage("RRL1", message, "WHISPER", sender) -- XXX check params
+	else
+		RRL:Print("ERROR: received unknown addon message type '"..msgtype.."' from", sender)
+	end
 end
 
 -- process a RRL_SEND_UPDATE event
-function RRL:RRL_SEND_UPDATE()
-	local message = "1"
-	if not readystate then
-		message = "0"
+function RRL:RRL_SEND_UPDATE(msgtype)
+	local message = "READY 1"
+	if false == self.selfready then
+		message = "READY 0"
 	end
     RRL:SendCommMessage("RRL1", message, "RAID")
 end
 
--- process a RRL_PROCESS_UPDATE event
-function RRL:RRL_PROCESS_UPDATE(update)
-	local senderstate = true
-	if "0" == update.message then
-		senderstate = false
-	end
-	oldstate = roster[update.member]
-	roster[update.sender] = senderstate
-	if nil ~= oldstate then
-		if oldstate ~= senderstate then
-			self:CancelTimer(process_timer, true)
-			process_timer = self:ScheduleTimer('RRL_UPDATE_STATUS', 1)
-		end
-	else
-		self:CancelTimer(process_timer, true)
-		process_timer = self:ScheduleTimer('RRL_UPDATE_STATUS', 1)
-	end
-end
-
 -- process a RRL_UPDATE_ROSTER event
 function RRL:RRL_UPDATE_ROSTER()
-	local newroster = {}
+	local newmembers = {}
 	for i = 1, 40, 1
 	do
 		local name, rank, subgroup, level, class, fileName,
 			zone, online, isDead, role, isML = GetRaidRosterInfo(i)
 		if name then
-			if online and roster[name] and true == roster[name] then
-				newroster[name] = true
+			if self.members[name] then
+				newmembers[name] = self.members[name]
 			else
-				newroster[name] = false
+				self.members[name] = {
+					state = RRL_STATE_UNKNOWN,
+					last = GetTime(),
+				}
 			end
 		end
 	end
-	roster = newroster
+	self.members = newmembers
 	self:RRL_UPDATE_STATUS()
 end
 
 -- process an UPDATE_STATUS event
 function RRL:RRL_UPDATE_STATUS()
-	local numready = 0
-	local numnotready = 0
-	local rostersize = 0
-	local numcriticalnotready = 0
-	ldb_obj.notreadymembers = {}
-	lightstatus = true
-	for k,v in pairs(roster) do
-	    rostersize = rostersize + 1
-		if not v then
-			numnotready = numnotready + 1
-			ldb_obj.notreadymembers[k] = 1
-			if self.db.profile.critical[k] then
-				ldb_obj.notreadymembers[k] = 2
-				numcriticalnotready = numcriticalnotready + 1
-				lightstatus = false
+	for k,v in pairs(self.members) do
+	    self.count.total = self.count.total + 1
+		if RRL_STATUS_OK = v.state then
+			if true == v.ready then
+				self.count.ready = self.count.ready + 1
+			else
+				self.count.notready = self.count.notready + 1
+				self.members[k].critical = false
+				if self.db.profile.critical[k] then
+					self.count.notready_crit = self.count.notready_crit + 1
+					self.members[k].critical = true
+				end
 			end
 		else
-			numready = numready + 1
+			self.count.unknown = self.count.unknown + 1
 		end
 	end
-	if numnotready > self.db.profile.maxnotready then
-		lightstatus = false
+	if self.count.notready_crit > 0 then
+		self.raidready = false
+	else
+		local type = GetDungeonDifficulty() -- XXX
+		if self.count.notready > self.db.profile.maxnotready[type] then
+			self.raidready = false
+		end
 	end
-	ldb_obj.ready = numready
-	ldb_obj.notready = numnotready
-	ldb_obj.critnotready = numcriticalnotready
-	ldb_obj.rostersize = rostersize
 	local youstring
 	local raidstring
 	local countstring
-	if readystate then
+	if true == self.selfready then
 		youstring = c:Green("YOU")
 	else
 		youstring = c:Red("YOU")
 	end
-	if lightstatus then
+	if true == self.raidready then
 		ldb_obj.status = true
 		ldb_obj.icon = "Interface\\RAIDFRAME\\ReadyCheck-Ready.png"
 		raidstring = c:Green("RAID")
@@ -349,8 +357,8 @@ function RRL:RRL_UPDATE_STATUS()
 		ldb_obj.icon = "Interface\\RAIDFRAME\\ReadyCheck-NotReady.png"
 		raidstring = c:Red("RAID")
 	end
-	countstring = numready.."/"..rostersize
-	if numcriticalnotready > 0 then
+	countstring = (self.count.numready+self.count.unknown).."/"..self.count.total.." ("..self.count.unknown..")"
+	if self.count.notready_crit > 0 then
 		countstring = countstring .. "*"
 	end
 	ldb_obj.text = youstring .. "/" .. raidstring .. " " .. c:White(countstring)
@@ -364,31 +372,43 @@ function ldb_obj.OnTooltipShow(tip)
 	tip:ClearLines()
 	tip:AddLine(c:White("RRL: Raid Ready Light"))
 	tip:AddLine(" ")
-	if 0 == active then
+	if false == RRL.active then
 		tip:AddLine(c:White("Only active when in a raid"))
 	else
-		if ldb_obj.status then
+		if true == RRL.raidready then
 			tip:AddDoubleLine(c:White("Raid:"), c:Green("READY"))
 		else
 			tip:AddDoubleLine(c:White("Raid:"), c:Red("NOT READY"))
 		end
-		if readystate then
+		if true == RRL.selfready then
 			tip:AddDoubleLine(c:White("You:"), c:Green("READY"))
 		else
 			tip:AddDoubleLine(c:White("You:"), c:Red("NOT READY"))
 		end
-		tip:AddDoubleLine(c:White("Ready:"), c:Colorize(c:GetThresholdHexColor(ldb_obj.ready,ldb_obj.rostersize), ldb_obj.ready)
-			.. "/"..c:Colorize(c:GetThresholdHexColor(ldb_obj.rostersize,ldb_obj.rostersize), ldb_obj.rostersize))
-		tip:AddDoubleLine(c:White("Not Ready:"), c:Red(ldb_obj.notready) .. "/".. c:Green(RRL.db.profile.maxnotready))
-		tip:AddDoubleLine(c:White("Critical: "), c:Red(ldb_obj.critnotready))
-		if ldb_obj.notready then
+		tip:AddDoubleLine(c:White("Ready:"), c:Colorize(c:GetThresholdHexColor(RRL.count.ready,RRL.count.total), RRL.count.ready)
+			.. "/"..c:Green(RRL.count.total))
+		local type = GetDungeonDifficulty() -- XXX	
+		tip:AddDoubleLine(c:White("Not Ready:"), c:Red(RRL.count.notready) .. "/".. c:Green(RRL.db.profile.maxnotready[type]))
+		tip:AddDoubleLine(c:White("Critical: "), c:Red(RRL.count.notready_crit))
+		tip:AddDoubleLine(c:White("Unknown: "), c:Yellow(RRL.count.unknown))
+		if RRL.count.notready then
 			tip:AddLine(" ")
 			tip:AddLine(c:White("Not Ready:"))
-			for k,v in pairs(ldb_obj.notreadymembers)
+			for k,v in pairs(RRL.members)
 			do
-				if 2 == v then
+				if RRL_STATE_OK == v.state and true = v.critical then
 					tip:AddLine(c:Red(k))
 				else
+					tip:AddLine(c:Yellow(k))
+				end
+			end
+		end
+		if RRL.count.unknown then
+			tip:AddLine(" ")
+			tip:AddLine(c:White("Unknown:"))
+			for k,v in pairs(RRL.members)
+			do
+				if RRL_STATE_UNKNOWN == v.state then
 					tip:AddLine(c:Yellow(k))
 				end
 			end
@@ -503,7 +523,7 @@ end
 
 -- get ready state
 function RRL:GetReady()
-	return readystate
+	return self.selfready
 end
 
 -- toggle ready state
@@ -548,7 +568,7 @@ end
 
 -- respond to a ready check for the user
 function RRL:READY_CHECK()
-	if readystate then
+	if true == self.selfready then
 		ConfirmReadyCheck(true)
 		RRL:Print("responded", c:Green('READY'), "to a ready check for you")
 	else
