@@ -40,6 +40,7 @@ RRL.count = {
 	notready_crit = 0,
 	total = 40,
 	unknown = 0,
+	norrl = 0,
 }
 RRL.members = {}
 
@@ -52,9 +53,8 @@ function ldb_obj.OnClick(_, which)
 	if true == RRL.active then
 		if "LeftButton" == which then
 			RRL:ToggleReady(false)
-		else if "RightButton" == which then
+		elseif "RightButton" == which then
 			DoReadyCheck()
-		end
 		end
 	end
 end
@@ -177,46 +177,45 @@ end
 -- enable
 function RRL:OnEnable()
     -- register our events
-	RRL:RegisterEvent("PARTY_MEMBERS_CHANGED", "RRL_CHECK_RAID")
-	RRL:RegisterEvent("RAID_ROSTER_UPDATE", "RRL_CHECK_RAID")
-	RRL:RegisterEvent("RRL_JOIN_RAID")
-	RRL:RegisterEvent("RRL_LEAVE_RAID")
+	self:RegisterEvent("PARTY_MEMBERS_CHANGED", "RRL_CHECK_RAID")
+	self:RegisterEvent("RAID_ROSTER_UPDATE", "RRL_CHECK_RAID")
+	self:RegisterEvent("RRL_JOIN_RAID")
+	self:RegisterEvent("RRL_LEAVE_RAID")
 	-- are we in a raid?
 	self:RRL_CHECK_RAID()
 end
 
 -- disable
 function RRL:OnDisable()
-	RRL:UnegisterAllEvents()
+	self:UnegisterAllEvents()
+	self:UnhookAll()
 end
 
 -- start doing what we need to do in a raid
 function RRL:RRL_JOIN_RAID()
 	self.active = true
 	-- register our events
-    RRL:RegisterEvent("RRL_SEND_UPDATE")
-    RRL:RegisterEvent("RRL_PROCESS_UPDATE")
-    RRL:RegisterEvent("RRL_UPDATE_ROSTER")
-    RRL:RegisterEvent("RRL_UPDATE_STATUS")
-	RRL:RegisterEvent("RRL_SEND_PING")
-	RRL:RegisterEvent("RRL_MARK_NORRL")
+	self:RegisterEvent("RRL_SEND_UPDATE")
+    self:RegisterEvent("RRL_UPDATE_STATUS")
+	self:RegisterEvent("RRL_SEND_PING")
+	self:RegisterEvent("RRL_MARK_NORRL")
 	-- register to receive addon messages
-    RRL:RegisterComm("RRL1")
+    self:RegisterComm("RRL1")
 	-- start firing RRL_SEND_UPDATE
     send_timer = self:ScheduleRepeatingTimer('RRL_SEND_UPDATE', self.db.profile.updateinterval)
 	-- update the roster
-	self:RRL_UPDATE_ROSTER()
+	self:UpdateRoster()
 	-- hook ready checks if requested to
 	if self.db.profile.readycheck_respond then
 		if not self:IsHooked("ShowReadyCheck") then
 			self:RawHook("ShowReadyCheck", true)
 		end
-		RRL:RegisterEvent("READY_CHECK")
+		self:RegisterEvent("READY_CHECK")
 	else
 		if self:IsHooked("ShowReadyCheck") then
 			self:Unhook("ShowReadyCheck")
 		end
-		RRL:UnregisterEvent("READY_CHECK")
+		self:UnregisterEvent("READY_CHECK")
 	end
 end
 
@@ -224,15 +223,20 @@ end
 function RRL:RRL_LEAVE_RAID()
 	self.active = false
 	ldb_obj.text = "Not Active"
-	-- stop sending updates
-	self:CancelTimer(send_timer, true)
-	-- unregister receiving messages
-	self:UnregisterComm("RRL1")
 	-- unhook ready checks
 	if self:IsHooked("ShowReadyCheck") then
 		self:Unhook("ShowReadyCheck")
 	end
-	RRL:UnregisterEvent("READY_CHECK")
+	self:UnregisterEvent("READY_CHECK")
+	-- stop sending updates
+	self:CancelTimer(send_timer, true)
+	-- unregister receiving messages
+	self:UnregisterComm("RRL1")
+	-- unregister events
+	self:UnregisterEvent("RRL_MARK_NORRL")
+	self:UnregisterEvent("RRL_SEND_PING")
+	self:UnregisterEvent("RRL_UPDATE_STATUS")
+	self:UnregisterEvent("RRL_SEND_UPDATE")
 end
 
 -- check our raid status and raid roster
@@ -242,7 +246,7 @@ function RRL:RRL_CHECK_RAID()
 			self.inraid = true
 			self:RRL_JOIN_RAID()
 		end
-		self:RRL_UPDATE_ROSTER()
+		self:UpdateRoster()
 	else
 		if self.inraid then
 			self.inraid = false
@@ -254,31 +258,31 @@ end
 -- process a received addon message
 function RRL:OnCommReceived(prefix, message, distribution, sender)
     -- split the message into msgtype, data
-	local msgtype, data = ...
+	local msgtype, data = string.find(message, "(%a+)%s(%d)")
 	-- switch based on msgtype
 	if 'READY' == msgtype or 'PONG' == msgtype then
 		local senderready = true
 		if '0' == data then
 			senderready = false
 		end
-		local oldready = self.members[sender].ready,
+		local oldready = self.members[sender].ready
 		self.members[sender] = {
 			state = RRL_STATE_OK,
 			ready = senderready,
-			last = GetTime(),
+			last = time(),
 		}
 		if oldready ~= ready then
 			self:CancelTimer(process_timer, true)
 			process_timer = self:ScheduleTimer('RRL_UPDATE_STATUS', 1)
 		end
-	else if 'PING' == msgtype then
+	elseif 'PING' == msgtype then
 		local message = "PONG 1"
 		if false == self.selfready then
 			message = "PONG 0"
 		end
-		RRL:SendCommMessage("RRL1", message, "WHISPER", sender) -- XXX check params
+		self:SendCommMessage("RRL1", message, "WHISPER", sender)
 	else
-		RRL:Print("ERROR: received unknown addon message type '"..msgtype.."' from", sender)
+		self:Print("ERROR: received unknown addon message type '"..msgtype.."' from", sender)
 	end
 end
 
@@ -288,11 +292,11 @@ function RRL:RRL_SEND_UPDATE(msgtype)
 	if false == self.selfready then
 		message = "READY 0"
 	end
-    RRL:SendCommMessage("RRL1", message, "RAID")
+    self:SendCommMessage("RRL1", message, "RAID")
 end
 
--- process a RRL_UPDATE_ROSTER event
-function RRL:RRL_UPDATE_ROSTER()
+-- update the roster
+function RRL:UpdateRoster()
 	local newmembers = {}
 	for i = 1, 40, 1
 	do
@@ -304,8 +308,9 @@ function RRL:RRL_UPDATE_ROSTER()
 			else
 				self.members[name] = {
 					state = RRL_STATE_UNKNOWN,
-					last = GetTime(),
+					last = time(),
 				}
+				self:ScheduleTimer('RRL_SEND_PING', 3 * self.db.profile.updateinterval, name)
 			end
 		end
 	end
@@ -315,9 +320,18 @@ end
 
 -- process an UPDATE_STATUS event
 function RRL:RRL_UPDATE_STATUS()
-	for k,v in pairs(self.members) do
+	self.count = {
+		ready = 0,
+		notready = 0,
+		notready_crit = 0,
+		total = 0,
+		unknown = 0,
+		norrl = 0,
+	}
+	for k,v in pairs(self.members)
+	do
 	    self.count.total = self.count.total + 1
-		if RRL_STATUS_OK = v.state then
+		if RRL_STATE_OK == v.state then
 			if true == v.ready then
 				self.count.ready = self.count.ready + 1
 			else
@@ -328,6 +342,9 @@ function RRL:RRL_UPDATE_STATUS()
 					self.members[k].critical = true
 				end
 			end
+		elseif RRL_STATE_NORRL == v.state then
+			self.count.unknown = self.count.unknown + 1
+			self.count.norrl = self.count.norrl + 1
 		else
 			self.count.unknown = self.count.unknown + 1
 		end
@@ -335,7 +352,11 @@ function RRL:RRL_UPDATE_STATUS()
 	if self.count.notready_crit > 0 then
 		self.raidready = false
 	else
-		local type = GetDungeonDifficulty() -- XXX
+		local difficulty = GetInstanceDifficulty()
+		local type = 'normal'
+		if 2 == difficulty then
+			type = 'heroic'
+		end
 		if self.count.notready > self.db.profile.maxnotready[type] then
 			self.raidready = false
 		end
@@ -387,16 +408,21 @@ function ldb_obj.OnTooltipShow(tip)
 		end
 		tip:AddDoubleLine(c:White("Ready:"), c:Colorize(c:GetThresholdHexColor(RRL.count.ready,RRL.count.total), RRL.count.ready)
 			.. "/"..c:Green(RRL.count.total))
-		local type = GetDungeonDifficulty() -- XXX	
+		local difficulty = GetInstanceDifficulty()
+		local type = 'normal'
+		if 2 == difficulty then
+			type = 'heroic'
+		end
 		tip:AddDoubleLine(c:White("Not Ready:"), c:Red(RRL.count.notready) .. "/".. c:Green(RRL.db.profile.maxnotready[type]))
 		tip:AddDoubleLine(c:White("Critical: "), c:Red(RRL.count.notready_crit))
 		tip:AddDoubleLine(c:White("Unknown: "), c:Yellow(RRL.count.unknown))
+		tip:AddDoubleLine(c:White("No Addon: "), c:Yellow(RRL.count.norrl))
 		if RRL.count.notready then
 			tip:AddLine(" ")
 			tip:AddLine(c:White("Not Ready:"))
 			for k,v in pairs(RRL.members)
 			do
-				if RRL_STATE_OK == v.state and true = v.critical then
+				if RRL_STATE_OK == v.state and true == v.critical then
 					tip:AddLine(c:Red(k))
 				else
 					tip:AddLine(c:Yellow(k))
@@ -409,6 +435,16 @@ function ldb_obj.OnTooltipShow(tip)
 			for k,v in pairs(RRL.members)
 			do
 				if RRL_STATE_UNKNOWN == v.state then
+					tip:AddLine(c:Yellow(k))
+				end
+			end
+		end
+		if RRL.count.norrl then
+			tip:AddLine(" ")
+			tip:AddLine(c:White("Unknown:"))
+			for k,v in pairs(RRL.members)
+			do
+				if RRL_STATE_NORRL == v.state then
 					tip:AddLine(c:Yellow(k))
 				end
 			end
@@ -428,7 +464,7 @@ end
 -- set the max number of not ready members
 function RRL:SetMax(type, min, max, value)
 	if value < min or value > max then
-		RRL:Print("max not ready members for", type, "is", min .. '-' .. max)
+		self:Print("max not ready members for", type, "is", min .. '-' .. max)
 	else
 		self.db.profile.maxnotready[type] = value
 		self:CancelTimer(process_timer, true)
@@ -444,7 +480,7 @@ end
 -- set the update interval
 function RRL:SetInterval(info, interval)
 	if interval < 1 or interval > 600 then
-		RRL:Print("interval range: 1-600")
+		self:Print("interval range: 1-600")
 	else
 		self.db.profile.updateinterval = interval
 		self:CancelTimer(send_timer, true)
@@ -454,16 +490,16 @@ end
 
 -- lists critical members
 function RRL:ListCritical()
-	RRL:Print("Members who must be ready:")
+	self:Print("Members who must be ready:")
     for k,v in pairs(self.db.profile.critical)
 	do
-		RRL:Print(k)
+		self:Print(k)
 	end
 end
 
 -- clears critical members
 function RRL:ClearCritical()
-	RRL:Print("critical members list has been cleared")
+	self:Print("critical members list has been cleared")
 	self.db.profile.critical = {}
 	self:CancelTimer(process_timer, true)
 	process_timer = self:ScheduleTimer('RRL_UPDATE_STATUS', 1)
@@ -473,22 +509,22 @@ end
 function RRL:AddCritical(info, member)
 	if "" ~= member then
 		if self.db.profile.critical[member] then
-			RRL:Print("'"..member.."' was already on the critical list")
+			self:Print("'"..member.."' was already on the critical list")
 		else
 			self.db.profile.critical[member] = 1
-			RRL:Print("added '"..member.."' to the critical list")
+			self:Print("added '"..member.."' to the critical list")
 		end
 	else
 		member = UnitName('target')
 		if nil ~= member then
 			if self.db.profile.critical[member] then
-				RRL:Print("'"..member.."' was already on the critical list")
+				self:Print("'"..member.."' was already on the critical list")
 			else
 				self.db.profile.critical[member] = 1
-				RRL:Print("added '"..member.."' to the critical list")
+				self:Print("added '"..member.."' to the critical list")
 			end
 		else
-			RRL:Print("usage: /rrl critical add name (uses target if no name)")
+			self:Print("usage: /rrl critical add name (uses target if no name)")
 		end
 	end
 	self:CancelTimer(process_timer, true)
@@ -500,21 +536,21 @@ function RRL:DelCritical(info, member)
 	if "" ~= member then
 		if self.db.profile.critical[member] then
 			self.db.profile.critical[member] = nil
-			RRL:Print("removed '"..member.."' from the critical list")
+			self:Print("removed '"..member.."' from the critical list")
 		else
-			RRL:Print("'"..member.."' is not on the critical list")
+			self:Print("'"..member.."' is not on the critical list")
 		end
 	else
 		member = UnitName('target')
 		if nil ~= member then
 			if self.db.profile.critical[member] then
 				self.db.profile.critical[member] = nil
-				RRL:Print("removed '"..member.."' from the critical list")
+				self:Print("removed '"..member.."' from the critical list")
 			else
-				RRL:Print("'"..member.."' is not on the critical list")
+				self:Print("'"..member.."' is not on the critical list")
 			end
 		else
-			RRL:Print("usage: /rrl critical del name (uses target if no name)")
+			self:Print("usage: /rrl critical del name (uses target if no name)")
 		end
 	end
 	self:CancelTimer(process_timer, true)
@@ -531,9 +567,9 @@ function RRL:ToggleReady(toconsole)
     readystate = not readystate
 	if toconsole then
 		if readystate then
-			RRL:Print("setting your state to", c:Green("READY"))
+			self:Print("setting your state to", c:Green("READY"))
 		else
-			RRL:Print("setting your state to", c:Red("NOT READY"))
+			self:Print("setting your state to", c:Red("NOT READY"))
 		end
 	end
 	self:RRL_SEND_UPDATE()
@@ -548,7 +584,7 @@ end
 function RRL:ToggleReadyCheck()
     self.db.profile.readycheck_respond = not self.db.profile.readycheck_respond
 	if self.db.profile.readycheck_respond then
-		RRL:Print("will auto-respond to ready checks")
+		self:Print("will auto-respond to ready checks")
 		if inraid then
 			if not self:IsHooked("ShowReadyCheck") then
 				self:RawHook("ShowReadyCheck", true)
@@ -556,7 +592,7 @@ function RRL:ToggleReadyCheck()
 			RRL:RegisterEvent("READY_CHECK")
 		end
 	else
-		RRL:Print("will not auto-respond to ready checks")
+		self:Print("will not auto-respond to ready checks")
 		if inraid then
 			if self:IsHooked("ShowReadyCheck") then
 				self:Unhook("ShowReadyCheck")
@@ -570,9 +606,9 @@ end
 function RRL:READY_CHECK()
 	if true == self.selfready then
 		ConfirmReadyCheck(true)
-		RRL:Print("responded", c:Green('READY'), "to a ready check for you")
+		self:Print("responded", c:Green('READY'), "to a ready check for you")
 	else
-		RRL:Print("responded", c:Red('NOT READY'), "to a ready check for you")
+		self:Print("responded", c:Red('NOT READY'), "to a ready check for you")
 		ConfirmReadyCheck(false)
 	end
 end
@@ -580,6 +616,22 @@ end
 -- play the ready check sound but do not show the dialog
 function RRL:ShowReadyCheck()
 	PlaySound("ReadyCheck")
+end
+
+-- send a ping message to a member if they are in unknown state
+function RRL:RRL_SEND_PING(member)
+	if RRL_STATE_UNKNOWN == self.members[member].state then
+		self:SendCommMessage("RRL1", "PING 0", "WHISPER", member)
+		self:ScheduleTimer('RRL_MARK_NORRL', 2 * self.db.profile.updateinterval, member)
+		self.members[member].last = time()
+	end
+end
+
+function RRL:RRL_MARK_NORRL(member)
+	if RRL_STATE_PINGED == self.members[member].state then
+		self.members[member].state = RRL_STATE_NORRL
+		self.members[member].last = time()
+	end
 end
 
 --
