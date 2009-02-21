@@ -34,6 +34,7 @@ RRL.active = false
 RRL.inraid  = false
 RRL.raidready = false
 RRL.selfready = false
+RRL.debug = true
 RRL.count = {
 	ready = 0,
 	notready = 0,
@@ -109,6 +110,13 @@ RRL.options = {
 			get  = 'GetReadyCheck',
 			set  = 'ToggleReadyCheck',
 		},
+		debug = {
+			type = 'toggle',
+			name = 'toggle debug',
+			desc = 'toggle debug on/off',
+			get  = function(info) return RRL.debug end,
+			set  = function(info) RRL.debug = not RRL.debug end,
+		},
         r = {
             type = 'toggle',
             name = 'toggle ready',
@@ -179,8 +187,6 @@ function RRL:OnEnable()
     -- register our events
 	self:RegisterEvent("PARTY_MEMBERS_CHANGED", "RRL_CHECK_RAID")
 	self:RegisterEvent("RAID_ROSTER_UPDATE", "RRL_CHECK_RAID")
-	self:RegisterEvent("RRL_JOIN_RAID")
-	self:RegisterEvent("RRL_LEAVE_RAID")
 	-- are we in a raid?
 	self:RRL_CHECK_RAID()
 end
@@ -192,7 +198,7 @@ function RRL:OnDisable()
 end
 
 -- start doing what we need to do in a raid
-function RRL:RRL_JOIN_RAID()
+function RRL:JoinRaid()
 	self.active = true
 	-- register our events
 	self:RegisterEvent("RRL_SEND_UPDATE")
@@ -201,7 +207,8 @@ function RRL:RRL_JOIN_RAID()
 	self:RegisterEvent("RRL_MARK_NORRL")
 	-- register to receive addon messages
     self:RegisterComm("RRL1")
-	-- start firing RRL_SEND_UPDATE
+	-- send an update, then start firing them on a timer
+	self:RRL_SEND_UPDATE()
     send_timer = self:ScheduleRepeatingTimer('RRL_SEND_UPDATE', self.db.profile.updateinterval)
 	-- update the roster
 	self:UpdateRoster()
@@ -220,7 +227,7 @@ function RRL:RRL_JOIN_RAID()
 end
 
 -- stop doing what we do in a raid
-function RRL:RRL_LEAVE_RAID()
+function RRL:LeaveRaid()
 	self.active = false
 	ldb_obj.text = "Not Active"
 	-- unhook ready checks
@@ -244,13 +251,12 @@ function RRL:RRL_CHECK_RAID()
 	if GetNumRaidMembers() > 0 then
 		if not self.inraid then
 			self.inraid = true
-			self:RRL_JOIN_RAID()
+			self:JoinRaid()
 		end
-		self:UpdateRoster()
 	else
 		if self.inraid then
 			self.inraid = false
-			self:RRL_LEAVE_RAID()
+			self:LeaveRaid()
 		end
 	end
 end
@@ -258,7 +264,10 @@ end
 -- process a received addon message
 function RRL:OnCommReceived(prefix, message, distribution, sender)
     -- split the message into msgtype, data
-	local msgtype, data = string.find(message, "(%a+)%s(%d)")
+	local _, _, msgtype, data = string.find(message, "(%a+)%s(%d)")
+	if self.debug then
+		self:Print("received",msgtype,"from",sender,"with value",data)
+	end
 	-- switch based on msgtype
 	if 'READY' == msgtype or 'PONG' == msgtype then
 		local senderready = true
@@ -271,7 +280,7 @@ function RRL:OnCommReceived(prefix, message, distribution, sender)
 			ready = senderready,
 			last = time(),
 		}
-		if oldready ~= ready then
+		if oldready ~= senderready then
 			self:CancelTimer(process_timer, true)
 			process_timer = self:ScheduleTimer('RRL_UPDATE_STATUS', 1)
 		end
@@ -281,6 +290,9 @@ function RRL:OnCommReceived(prefix, message, distribution, sender)
 			message = "PONG 0"
 		end
 		self:SendCommMessage("RRL1", message, "WHISPER", sender)
+		if self.debug then
+			self:Print("responded to ping from",sender)
+		end
 	else
 		self:Print("ERROR: received unknown addon message type '"..msgtype.."' from", sender)
 	end
@@ -293,29 +305,56 @@ function RRL:RRL_SEND_UPDATE(msgtype)
 		message = "READY 0"
 	end
     self:SendCommMessage("RRL1", message, "RAID")
+	if self.debug then
+		self:Print("sent update message",message)
+	end
 end
 
 -- update the roster
 function RRL:UpdateRoster()
+	if self.debug then
+		self:Print("updating roster")
+	end
 	local newmembers = {}
 	for i = 1, 40, 1
 	do
 		local name, rank, subgroup, level, class, fileName,
 			zone, online, isDead, role, isML = GetRaidRosterInfo(i)
 		if name then
-			if self.members[name] then
+			if nil ~= self.members[name] then
+				if self.debug then
+					self:Print("found",name,"in the member list")
+				end
 				newmembers[name] = self.members[name]
 			else
-				self.members[name] = {
+				if self.debug then
+					self:Print("did not find",name,"in the member list")
+				end
+				newmembers[name] = {
 					state = RRL_STATE_UNKNOWN,
 					last = time(),
 				}
 				self:ScheduleTimer('RRL_SEND_PING', 3 * self.db.profile.updateinterval, name)
+				if self.debug then
+					self:Print("scheduling ping for",name,"in",3 * self.db.profile.updateinterval,"seconds")
+				end
 			end
 		end
 	end
 	self.members = newmembers
 	self:RRL_UPDATE_STATUS()
+end
+
+-- dump the member list
+function RRL:Dump(msg)
+	self:Print("dumping:",msg)
+	for k,v in pairs(self.members)
+	do
+		self:Print("member",k)
+		self:Print("   state",v.state)
+		self:Print("   last",v.last)
+		self:Print("   ready",v.ready)
+	end
 end
 
 -- process an UPDATE_STATUS event
@@ -328,6 +367,7 @@ function RRL:RRL_UPDATE_STATUS()
 		unknown = 0,
 		norrl = 0,
 	}
+	-- iterate over members to build counts
 	for k,v in pairs(self.members)
 	do
 	    self.count.total = self.count.total + 1
@@ -343,14 +383,19 @@ function RRL:RRL_UPDATE_STATUS()
 				end
 			end
 		elseif RRL_STATE_NORRL == v.state then
-			self.count.unknown = self.count.unknown + 1
 			self.count.norrl = self.count.norrl + 1
 		else
 			self.count.unknown = self.count.unknown + 1
 		end
 	end
+	
+	-- determine if the raid is ready
+	self.raidready = true
 	if self.count.notready_crit > 0 then
 		self.raidready = false
+		if self.debug then
+			self:Print("raid not ready because 1 or more critical members are not ready")
+		end
 	else
 		local difficulty = GetInstanceDifficulty()
 		local type = 'normal'
@@ -359,8 +404,17 @@ function RRL:RRL_UPDATE_STATUS()
 		end
 		if self.count.notready > self.db.profile.maxnotready[type] then
 			self.raidready = false
+			if self.debug then
+				self:Print("raid not ready because more than",self.db.profile.maxnotready[type],"members are not ready")
+			end
+		else
+			if self.debug then
+				self:Print("raid is ready")
+			end
 		end
 	end
+	
+	-- build the LDB text
 	local youstring
 	local raidstring
 	local countstring
@@ -378,7 +432,7 @@ function RRL:RRL_UPDATE_STATUS()
 		ldb_obj.icon = "Interface\\RAIDFRAME\\ReadyCheck-NotReady.png"
 		raidstring = c:Red("RAID")
 	end
-	countstring = (self.count.numready+self.count.unknown).."/"..self.count.total.." ("..self.count.unknown..")"
+	countstring = (self.count.ready+self.count.unknown+self.count.norrl).."/"..self.count.total.." ("..self.count.unknown+self.count.norrl..")"
 	if self.count.notready_crit > 0 then
 		countstring = countstring .. "*"
 	end
@@ -417,31 +471,35 @@ function ldb_obj.OnTooltipShow(tip)
 		tip:AddDoubleLine(c:White("Critical: "), c:Red(RRL.count.notready_crit))
 		tip:AddDoubleLine(c:White("Unknown: "), c:Yellow(RRL.count.unknown))
 		tip:AddDoubleLine(c:White("No Addon: "), c:Yellow(RRL.count.norrl))
-		if RRL.count.notready then
+		if RRL.count.notready > 0 then
 			tip:AddLine(" ")
 			tip:AddLine(c:White("Not Ready:"))
 			for k,v in pairs(RRL.members)
 			do
-				if RRL_STATE_OK == v.state and true == v.critical then
-					tip:AddLine(c:Red(k))
-				else
-					tip:AddLine(c:Yellow(k))
+				if RRL_STATE_OK == v.state then
+					if false == v.ready then
+						if true == v.critical then
+							tip:AddLine(c:Red(k))
+						else
+							tip:AddLine(c:Yellow(k))
+						end
+					end
 				end
 			end
 		end
-		if RRL.count.unknown then
+		if RRL.count.unknown > 0 then
 			tip:AddLine(" ")
 			tip:AddLine(c:White("Unknown:"))
 			for k,v in pairs(RRL.members)
 			do
-				if RRL_STATE_UNKNOWN == v.state then
+				if RRL_STATE_UNKNOWN == v.state or RRL_STATE_PINGED == v.state then
 					tip:AddLine(c:Yellow(k))
 				end
 			end
 		end
-		if RRL.count.norrl then
+		if RRL.count.norrl > 0 then
 			tip:AddLine(" ")
-			tip:AddLine(c:White("Unknown:"))
+			tip:AddLine(c:White("No Addon:"))
 			for k,v in pairs(RRL.members)
 			do
 				if RRL_STATE_NORRL == v.state then
@@ -564,9 +622,9 @@ end
 
 -- toggle ready state
 function RRL:ToggleReady(toconsole)
-    readystate = not readystate
+    self.selfready = not self.selfready
 	if toconsole then
-		if readystate then
+		if self.selfready then
 			self:Print("setting your state to", c:Green("READY"))
 		else
 			self:Print("setting your state to", c:Red("NOT READY"))
@@ -623,7 +681,15 @@ function RRL:RRL_SEND_PING(member)
 	if RRL_STATE_UNKNOWN == self.members[member].state then
 		self:SendCommMessage("RRL1", "PING 0", "WHISPER", member)
 		self:ScheduleTimer('RRL_MARK_NORRL', 2 * self.db.profile.updateinterval, member)
+		self.members[member].state = RRL_STATE_PINGED
 		self.members[member].last = time()
+		if self.debug then
+			self:Print("sent ping to",member)
+		end
+	else
+		if self.debug then
+			self:Print("member",member,"was not unknown when send ping fired")
+		end
 	end
 end
 
@@ -631,6 +697,14 @@ function RRL:RRL_MARK_NORRL(member)
 	if RRL_STATE_PINGED == self.members[member].state then
 		self.members[member].state = RRL_STATE_NORRL
 		self.members[member].last = time()
+		if self.debug then
+			self:Print("marked",member," as not having the addon")
+		end
+		self:RRL_UPDATE_STATUS()
+	else
+		if self.debug then
+			self:Print("member",member,"was not pinged when mark norrl fired")
+		end
 	end
 end
 
