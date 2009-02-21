@@ -37,7 +37,7 @@ local db
 RRL.inraid  = false
 RRL.raidready = false
 RRL.selfready = false
-RRL.debug = true
+RRL.debug = false
 RRL.lastrosterupdate = 0
 RRL.rosterupdatemin = 5
 RRL.count = {
@@ -52,6 +52,7 @@ RRL.count = {
 	meta_ready = 0,
 	meta_notready = 0,
 	meta_unknown = 0,
+	max_notready = 0,
 }
 RRL.members = {}
 
@@ -190,13 +191,15 @@ RRL.defaults = {
 -- init
 function RRL:OnInitialize()
     -- load saved variables
-    self.db = LibStub("AceDB-3.0"):New("RRLDB", self.defaults, 'Default')
+    self.database = LibStub("AceDB-3.0"):New("RRLDB", self.defaults, 'Default')
 	-- register to be told when our profile changes
-	self.db.RegisterCallback(self, "OnProfileChanged", "OnProfileChanged")
-	self.db.RegisterCallback(self, "OnProfileCopied", "OnProfileChanged")
-	self.db.RegisterCallback(self, "OnProfileReset", "OnProfileChanged")
+	self.database.RegisterCallback(self, "OnProfileChanged", "OnProfileChanged")
+	self.database.RegisterCallback(self, "OnProfileCopied", "OnProfileChanged")
+	self.database.RegisterCallback(self, "OnProfileReset", "OnProfileChanged")
 	-- get a local reference to our profile
-	db = self.db.profile
+	db = self.database.profile
+	self.db = db
+	
 	-- add AceDB profile handler
 	self.options.args.profile = LibStub("AceDBOptions-3.0"):GetOptionsTable(self.db)
 	self.options.args.profile.order = 200
@@ -207,6 +210,7 @@ end
 -- our profile has changed, get a new local reference
 function RRL:OnProfileChanged(event, database, newProfileKey)
 	db = database.profile
+	self.db = db
 end
 
 -- enable
@@ -327,10 +331,12 @@ function RRL:OnCommReceived(prefix, message, distribution, sender)
 			senderready = false
 		end
 		local oldready = self.members[sender].ready
+		local oldcritical = self.members[sender].critical
 		self.members[sender] = {
 			state = RRL_STATE_OK,
 			ready = senderready,
 			last = time(),
+			critical = oldcritical,
 		}
 		if oldready ~= senderready then
 			self:CancelTimer(process_timer, true)
@@ -453,6 +459,7 @@ function RRL:RRL_UPDATE_STATUS()
 		meta_ready = 0,
 		meta_notready = 0,
 		meta_unknown = 0,
+		max_notready = 0,
 	}
 	
 	-- calc heartbeat cutoff
@@ -497,7 +504,9 @@ function RRL:RRL_UPDATE_STATUS()
 	self.count.meta_ready = self.count.rrl_ready + self.count.new + self.count.pinged + self.count.norrl
 	self.count.meta_notready = self.count.rrl_notready + self.count.offline
 	self.count.meta_unknown = self.count.new + self.count.pinged
-	
+	local instancetype = GetCurrentDungeonDifficulty()
+	self.count.max_notready = db.maxnotready[instancetype]
+
 	-- determine if the raid is ready
 	self.raidready = true
 	if self.count.rrl_notready_crit > 0 then
@@ -506,11 +515,10 @@ function RRL:RRL_UPDATE_STATUS()
 			self:Print("raid not ready because 1 or more critical members are not ready")
 		end
 	else
-		local type = GetInstanceDifficulty()
-		if self.count.meta_notready > db.maxnotready[type] then
+		if self.count.meta_notready > self.count.max_notready then
 			self.raidready = false
 			if self.debug then
-				self:Print("raid not ready because more than",db.maxnotready[type],"members are not ready")
+				self:Print("raid not ready because more than",self.count.max_notready,"members are not ready")
 			end
 		else
 			if self.debug then
@@ -570,13 +578,12 @@ function ldb_obj.OnTooltipShow(tip)
 			c:Colorize(c:GetThresholdHexColor(RRL.count.rrl_ready,RRL.count.total), RRL.count.rrl_ready)
 			.. "/"..c:Green(RRL.count.total)
 		)
-		local type = GetInstanceDifficulty()
-		tip:AddDoubleLine(c:White("Not Ready:"), c:Red(RRL.count.rrl_notready) .. "/".. c:Green(RRL.db.profile.maxnotready[type]))
+		tip:AddDoubleLine(c:White("Not Ready:"), c:Red(RRL.count.rrl_notready) .. "/".. c:Red(RRL.count.max_notready))
 		tip:AddDoubleLine(c:White("Critical: "), c:Red(RRL.count.rrl_notready_crit))
 		tip:AddDoubleLine(c:White("Offline: "), c:Yellow(RRL.count.offline))
 		tip:AddDoubleLine(c:White("Unknown: "), c:Yellow(RRL.count.meta_unknown))
 		tip:AddDoubleLine(c:White("No Addon: "), c:Yellow(RRL.count.norrl))
-		if false == RRL.db.profile.simpletooltip then
+		if false == RRL.db.simpletooltip then
 			tip:AddLine(" ")
 			for k,v in pairs(RRL.members)
 			do
@@ -607,16 +614,16 @@ function ldb_obj.OnTooltipShow(tip)
 end
 
 -- get the max number of not ready members
-function RRL:GetMax(type)
-    return db.maxnotready[type]
+function RRL:GetMax(instancetype)
+    return db.maxnotready[instancetype]
 end
 
 -- set the max number of not ready members
-function RRL:SetMax(type, min, max, value)
+function RRL:SetMax(instancetype, min, max, value)
 	if value < min or value > max then
-		self:Print("max not ready members for", type, "is", min .. '-' .. max)
+		self:Print("max not ready members for", instancetype, "is", min .. '-' .. max)
 	else
-		db.maxnotready[type] = value
+		db.maxnotready[instancetype] = value
 		self:CancelTimer(process_timer, true)
 		process_timer = self:ScheduleTimer('RRL_UPDATE_STATUS', 1)
 	end

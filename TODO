@@ -17,5 +17,3 @@ TODO
     an interval > 3 times theirs to be stale and in need of a ping
 	
   - for now, just remove the option to change the update interval (during beta)
-
-- use a local db, update when profile changes (ref nanotalk for example)
