@@ -7,41 +7,12 @@ TODO
 
 - add configuration dialog in interface menu
 
-* move roster to a more complex structure
+- consider adding an offline state and count
 
-	* add another state (assumed ready) for people who don't have RRL
+- check if a member is online before whisperingthem
 
-	* add message type to addon message (use AceSerializer?)
+- ready = known ready + unknown + pinge
 
-	* add ping and pong messages, sent directly from one member to another
+- not ready = known not ready + offline
 
-	* states: unknown, ok, pinged, norrl
-
-	* ready state: true or false (irrelevant unless state = ok)
-
-	* when adding someone to the roster for the first time, set state to unknown and and schedule timer
-	  for 3 * interval to do a ping
-
-	* when receiving an update from someone, set state to ok
-
-	- need timestamp when someone was last active (for unknown, time when added to roster,
-	  for ok time of last status message, for pinged time of ping sent)
-	  
-	- when ping event fires, mark as pinged, send whisper message to the user and schedule a timer for
-	  2 * interval to mark as norrl
-	  
-	* status report needs to show:
-
-	  - people with RRL who are ready
-	  
-	  - people with RRL who are not ready
-	  
-	  - people without RRL
-	  
-	  - people who are unknown
-	  
-	- for the LDB status line, need to show ready of roster total
-
-	- in the tooltip, need to break down the categories above
-
-	- max not ready is compared against those with RRL only
+- 

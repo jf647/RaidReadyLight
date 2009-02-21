@@ -210,8 +210,6 @@ function RRL:JoinRaid()
 	-- send an update, then start firing them on a timer
 	self:RRL_SEND_UPDATE()
     send_timer = self:ScheduleRepeatingTimer('RRL_SEND_UPDATE', self.db.profile.updateinterval)
-	-- update the roster
-	self:UpdateRoster()
 	-- hook ready checks if requested to
 	if self.db.profile.readycheck_respond then
 		if not self:IsHooked("ShowReadyCheck") then
@@ -253,6 +251,7 @@ function RRL:RRL_CHECK_RAID()
 			self.inraid = true
 			self:JoinRaid()
 		end
+		self:UpdateRoster()
 	else
 		if self.inraid then
 			self.inraid = false
