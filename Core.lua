@@ -32,6 +32,7 @@ local updateroster_timer
 local updateroster_recur_timer
 local ldb_tip
 local db
+local acd
 
 -- state variables
 RRL.inraid  = false
@@ -44,6 +45,7 @@ RRL.count = {
 	rrl_ready = 0,
 	rrl_notready = 0,
 	rrl_notready_crit = 0,
+	afk_notready = 0,
 	offline = 0,
 	new = 0,
 	pinged = 0,
@@ -55,6 +57,7 @@ RRL.count = {
 	max_notready = 0,
 }
 RRL.members = {}
+RRL.optionsFrames = {}
 
 -- LDB setup
 local ldb_obj = LibStub("LibDataBroker-1.1"):NewDataObject("RRL", {
@@ -68,7 +71,11 @@ function ldb_obj.OnClick(_, which)
 		if "LeftButton" == which then
 			RRL:ToggleReady(false)
 		elseif "RightButton" == which then
-			DoReadyCheck()
+			if IsControlKeyDown() then
+				InterfaceOptionsFrame_OpenToCategory(RRL.optionsFrames.rrl)
+			else
+				DoReadyCheck()
+			end
 		end
 	end
 end
@@ -80,100 +87,121 @@ RRL.options = {
     type = 'group',
     args = {
         max = {
-			name = 'maxnotready',
+			name = 'Max Not Ready',
 			desc = 'set maximum not ready members',
 			type = 'group',
 			args = {
 				normal = {
 					type = 'range',
-					name = 'get/set max not ready (normal)',
-					desc = 'get or set the maximum number of not ready members (normal raids)',
+					name = 'Normal Raids',
+					desc = 'maximum not ready members',
 					min  = 0,
 					max  = 10,
 					step = 1,
 					set  = function(info, value) RRL:SetMax(1, 0, 10, value) end,
-					get  = function(info) RRL:GetMax(1) end,
+					get  = function(info) return db.maxnotready[1] end,
+					order = 100,
 				},
 				heroic = {
 					type = 'range',
-					name = 'get/set max not ready (heroic)',
-					desc = 'get or set the maximum number of not ready members (heroic raids)',
+					name = 'Heroic Raids',
+					desc = 'maximum not ready members',
 					min  = 0,
 					max  = 25,
 					step = 1,
 					set  = function(info, value) RRL:SetMax(2, 0, 25, value) end,
-					get  = function(info) RRL:GetMax(2) end,
+					get  = function(info) return db.maxnotready[2] end,
+					order = 110,
 				},
 			},
         },
---        interval = {
---            type = 'range',
---            name = 'get/set update interval',
---            desc = 'get or set the raid update interval',
---			min  = 1,
---			max  = 3600,
---			step = 1,
---           set  = 'SetInterval',
---            get  = 'GetInterval',
- --       },
-		readycheck = {
-			type = 'toggle',
-			name = 'toggle readycheck',
-			desc = 'toggle auto-response to ready checks',
-			get  = 'GetReadyCheck',
-			set  = 'ToggleReadyCheck',
-		},
-		debug = {
-			type = 'toggle',
-			name = 'toggle debug',
-			desc = 'toggle debug on/off',
-			get  = function(info) return RRL.debug end,
-			set  = function(info) RRL.debug = not RRL.debug end,
-		},
-        r = {
-            type = 'toggle',
-            name = 'toggle ready',
-            desc = 'toggle your ready state',
-            get  = 'GetReady',
-			set  = function(info) RRL:ToggleReady(true) end,
-        },
---        d = {
---            type = 'execute',
---            name = 'dump',
---            desc = 'dump',
---			func = 'Dump',
---        },
         critical = {
-		    name = 'critical',
+		    name = 'Critical Members',
 			desc = 'manipulate list of members who must be ready',
             type = 'group',
             args = {
                 add = {
                     type = 'input',
-                    name = 'add a critical member',
+                    name = 'Add',
                     desc = 'add a member who must be ready',
                     set = 'AddCritical',
+					order = 100,
                 },
                 del = {
                     type = 'input',
-                    name = 'delete a critical member',
+                    name = 'Delete',
                     desc = 'delete a member who must be ready',
                     set = 'DelCritical',
+					order = 110,
                 },
                 list = {
                     type = 'execute',
-                    name = 'lists critical members',
+                    name = 'List',
                     desc = 'lists members who must be ready',
                     func  = 'ListCritical',
+					order = 200,
                 },
                 clear = {
                     type = 'execute',
-                    name = 'clears critical members',
+                    name = 'Clear',
                     desc = 'clears members who must be ready',
                     func  = 'ClearCritical',
+					order = 210,
                 },
             },
         },
+        interval = {
+            type = 'range',
+            name = 'get/set update interval',
+            desc = 'get or set the raid update interval',
+			min  = 1,
+			max  = 3600,
+			step = 1,
+			bigStep = 30,
+            set  = 'SetInterval',
+            get  = function(info) return db.updateinterval end,
+			disabled = true,
+			order = 100,
+        },
+		readycheck = {
+			type = 'toggle',
+			name = 'Readycheck Reply',
+			desc = 'auto-respond to ready checks',
+			get  = function(info) return db.readycheck_respond end,
+			set  = 'ToggleReadyCheck',
+			order = 120,
+		},
+		debug = {
+			type = 'toggle',
+			name = 'Debug',
+			desc = 'enable/disable debug messages',
+			get  = function(info) return RRL.debug end,
+			set  = function(info) RRL.debug = not RRL.debug end,
+			order = 130,
+		},
+        r = {
+            type = 'toggle',
+            name = 'Ready',
+            desc = 'toggle your ready state',
+            get  = 'GetReady',
+			set  = function(info) RRL:ToggleReady(true) end,
+			guiHidden = true,
+        },
+        d = {
+            type = 'execute',
+            name = 'Dump State',
+            desc = 'dump the member state table',
+			func = 'Dump',
+			guiHidden = true,
+        },
+		simpletooltip = {
+			type = 'toggle',
+			name = 'Simple Tooltip',
+			desc = 'toggle the simple tooltip on/off',
+			get  = function(info) return db.simpletooltip end,
+			set  = function(info) db.simpletooltip = not db.simpletooltip end,
+			order = 110,
+		},
     },
 }
 
@@ -200,11 +228,14 @@ function RRL:OnInitialize()
 	db = self.database.profile
 	self.db = db
 	
-	-- add AceDB profile handler
-	self.options.args.profile = LibStub("AceDBOptions-3.0"):GetOptionsTable(self.db)
-	self.options.args.profile.order = 200
+	-- add AceDB profile handler (broken, gives error in library when standalone)
+	--self.options.args.profile = LibStub("AceDBOptions-3.0"):GetOptionsTable(self.db)
+	--self.options.args.profile.order = 200
 	-- register options
-	LibStub("AceConfig-3.0"):RegisterOptionsTable("rrl", self.options, {"rrl"})
+	LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("Raid Ready Light", self.options)
+	LibStub("AceConfig-3.0"):RegisterOptionsTable("Raid Ready Light", self.options, "rrl")
+	acd = LibStub("AceConfigDialog-3.0")
+	self.optionsFrames.rrl = acd:AddToBlizOptions("Raid Ready Light")
 end
 
 -- our profile has changed, get a new local reference
@@ -240,6 +271,7 @@ function RRL:JoinRaid()
 	self:RegisterEvent("RRL_MARK_NORRL")
 	-- register WoW events
 	self:RegisterEvent("PLAYER_DEAD")
+	self:RegisterEvent("PLAYER_FLAGS_CHANGED")
 	-- register to receive addon messages
     self:RegisterComm("RRL1")
 	-- send an update, then start firing them on a timer
@@ -280,6 +312,7 @@ function RRL:LeaveRaid()
 	-- unregister receiving messages
 	self:UnregisterComm("RRL1")
 	-- unregister WoW events
+	self:UnregisterEvent("PLAYER_FLAGS_CHANGED")
 	self:UnregisterEvent("PLAYER_DEAD")
 	-- unregister events
 	self:UnregisterEvent("RRL_MARK_NORRL")
@@ -313,6 +346,18 @@ function RRL:PLAYER_DEAD()
 			if self.debug then
 				self:Print("you died; marking you as", c:Red("NOT READY"))
 			end
+		end
+	end
+end
+
+-- check if someone has gone AFK on us
+function RRL:PLAYER_FLAGS_CHANGED(event, member)
+	if UnitIsUnit(member, "player") then
+		if true == self.selfready and UnitIsAFK("player") then
+			self:Print("AFK: setting you", c:Red("NOT READY"))
+			self.selfready = false
+			self:CancelTimer(process_timer, true)
+			process_timer = self:ScheduleTimer('RRL_UPDATE_STATUS', 1)
 		end
 	end
 end
@@ -358,11 +403,6 @@ end
 
 -- process a RRL_SEND_UPDATE event
 function RRL:RRL_SEND_UPDATE(msgtype)
-	-- check if we've gone AFK
-	if true == self.selfready and UnitIsAFK("player") then
-		self:Print("AFK: setting you", c:Red("NOT READY"))
-		self.selfready = false
-	end
 	-- construct the message and send it
 	local message = "READY 1"
 	if false == self.selfready then
@@ -405,6 +445,7 @@ function RRL:UpdateRoster(periodic)
 			if not online then
 				newmembers[name] = {
 					state = RRL_STATE_OFFLINE,
+					ready = false,
 					last = time(),
 				}
 			else
@@ -413,12 +454,21 @@ function RRL:UpdateRoster(periodic)
 						self:Print("found",name,"in the member list")
 					end
 					newmembers[name] = self.members[name]
+					-- if they don't have the addon, do an AFK check
+					if RRL_STATE_NORRL == newmembers[name].state then
+						if UnitIsAFK(name) then
+							newmembers[name].ready = false
+						else
+							newmembers[name].ready = true
+						end
+					end
 				else
 					if self.debug then
 						self:Print("did not find",name,"in the member list")
 					end
 					newmembers[name] = {
 						state = RRL_STATE_NEW,
+						ready = true,
 						last = time(),
 					}
 					self:ScheduleTimer('RRL_SEND_PING', 3 * db.updateinterval, name)
@@ -451,6 +501,7 @@ function RRL:RRL_UPDATE_STATUS()
 		rrl_ready = 0,
 		rrl_notready = 0,
 		rrl_notready_crit = 0,
+		afk_notready = 0,
 		offline = 0,
 		new = 0,
 		pinged = 0,
@@ -496,13 +547,17 @@ function RRL:RRL_UPDATE_STATUS()
 		elseif RRL_STATE_OFFLINE == v.state then
 			self.count.offline = self.count.offline + 1
 		elseif RRL_STATE_NORRL == v.state then
-			self.count.norrl = self.count.norrl + 1
+			if false == v.ready then
+				self.count.afk_notready = self.count.afk_notready + 1
+			else
+				self.count.norrl = self.count.norrl + 1
+			end
 		end
 	end
 	
 	-- calc meta counts
 	self.count.meta_ready = self.count.rrl_ready + self.count.new + self.count.pinged + self.count.norrl
-	self.count.meta_notready = self.count.rrl_notready + self.count.offline
+	self.count.meta_notready = self.count.rrl_notready + self.count.afk_notready + self.count.offline
 	self.count.meta_unknown = self.count.new + self.count.pinged
 	local instancetype = GetCurrentDungeonDifficulty()
 	self.count.max_notready = db.maxnotready[instancetype]
@@ -602,20 +657,20 @@ function ldb_obj.OnTooltipShow(tip)
 				elseif RRL_STATE_NEW == v.state then
 					tip:AddDoubleLine(c:White(k), c:Yellow('New'))
 				elseif RRL_STATE_NORRL == v.state then
-					tip:AddDoubleLine(c:White(k), c:Yellow('No Addon'))
+					if false == v.ready then
+						tip:AddDoubleLine(c:White(k), c:Red('Not Ready'))
+					else
+						tip:AddDoubleLine(c:White(k), c:Yellow('No Addon'))
+					end
 				end
 			end
 		end
 		tip:AddLine(" ")
 		tip:AddLine(c:White("Left-click to change your status"))
 		tip:AddLine(c:White("Right-click to do a ready check"))
+		tip:AddLine(c:White("Control-Right-click to configure"))
 	end
 	tip:Show()
-end
-
--- get the max number of not ready members
-function RRL:GetMax(instancetype)
-    return db.maxnotready[instancetype]
 end
 
 -- set the max number of not ready members
@@ -627,11 +682,6 @@ function RRL:SetMax(instancetype, min, max, value)
 		self:CancelTimer(process_timer, true)
 		process_timer = self:ScheduleTimer('RRL_UPDATE_STATUS', 1)
 	end
-end
-
--- get the update interval
-function RRL:GetInterval()
-    return db.updateinterval
 end
 
 -- set the update interval
@@ -732,11 +782,6 @@ function RRL:ToggleReady(toconsole)
 	self:RRL_SEND_UPDATE()
 end
 
--- get readycheck auto-response
-function RRL:GetReadyCheck()
-	return db.readycheck_respond
-end
-
 -- toggle ready state
 function RRL:ToggleReadyCheck()
     db.readycheck_respond = not db.readycheck_respond
@@ -786,16 +831,22 @@ function RRL:RRL_SEND_PING(member)
 	end
 	-- make sure they're online
 	if nil == UnitIsConnected(member) then
-		self.members[member].state = RRL_STATE_OFFLINE
-		self.members[member].last = time()
+		self.members[member] = {
+			state = RRL_STATE_OFFLINE,
+			ready = false,
+			last = time(),
+		}
 		if self.debug then
 			self:Print("marked",member,"offline")
 		end
 	else
 		self:SendCommMessage("RRL1", "PING 0", "WHISPER", member)
 		self:ScheduleTimer('RRL_MARK_NORRL', 2 * db.updateinterval, member)
-		self.members[member].state = RRL_STATE_PINGED
-		self.members[member].last = time()
+		self.members[member] = {
+			state = RRL_STATE_PINGED,
+			last = time(),
+			ready = true,
+		}
 		if self.debug then
 			self:Print("sent ping to",member)
 		end
@@ -812,14 +863,20 @@ function RRL:RRL_MARK_NORRL(member)
 	end
 	-- make sure they're online
 	if nil == UnitIsConnected(member) then
-		self.members[member].state = RRL_STATE_OFFLINE
-		self.members[member].last = time()
+		self.members[member] = {
+			state = RRL_STATE_OFFLINE,
+			last = time(),
+			ready = false,
+		}
 		if self.debug then
 			self:Print("marked",member,"offline")
 		end
 	else
-		self.members[member].state = RRL_STATE_NORRL
-		self.members[member].last = time()
+		self.members[member] = {
+			state = RRL_STATE_NORRL,
+			last = time(),
+			ready = true,
+		}
 		if self.debug then
 			self:Print("marked",member," as not having the addon")
 		end

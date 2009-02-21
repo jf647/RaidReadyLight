@@ -3,17 +3,17 @@ TODO
 
 - replace static text with locales
 
-- add configuration dialog in interface menu
+- get acedboptions working again
+
+- clean up gui
+
+- remove debug code
 
 - optimize status counters, do in situ as updates come in instead of iterating
-
-- offer simple tooltip that doesn't show all the exceptions
-
-  - done, just needs a db setting toggler
 
 - consider passing raid parameters like updateinterval from the raid leader via aceserializer
 
   - avoids problem where someone with a low update interval will constantly consider someone with
     an interval > 3 times theirs to be stale and in need of a ping
 	
-  - for now, just remove the option to change the update interval (during beta)
+  - for now, just disable the option to change the update interval (during beta)
