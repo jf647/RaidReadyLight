@@ -1,4 +1,4 @@
-## Interface: 30900
+## Interface: 30000
 ## Title: RRL (Raid Ready Light)
 ## Notes: lets raid members indicate their ready status with a simple "traffic light" interface
 ## Author: James FitzGibbon <addons@nadt.net>
