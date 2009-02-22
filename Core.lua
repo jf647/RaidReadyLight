@@ -615,7 +615,7 @@ function ldb_obj.OnTooltipShow(tip)
 	tip:ClearLines()
 	tip:AddLine(c:White("RRL: Raid Ready Light"))
 	tip:AddLine(" ")
-	if false == RRL.active then
+	if false == RRL.inraid then
 		tip:AddLine(c:White("Only active when in a raid"))
 	else
 		if true == RRL.raidready then
