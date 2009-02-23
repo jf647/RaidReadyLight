@@ -34,7 +34,7 @@ local db
 RRL.inraid  = false
 RRL.raidready = false
 RRL.selfready = false
-RRL.debug = true
+RRL.debug = false
 RRL.lastrosterupdate = 0
 RRL.rosterupdatemin = 5
 RRL.lastcountupdate = 0
