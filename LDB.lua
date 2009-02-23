@@ -43,60 +43,88 @@ function RRL.ldb_obj.OnTooltipShow(tip)
 	if false == RRL.inraid then
 		tip:AddLine(c:White("Only active when in a raid"))
 	else
-		if true == RRL.raidready then
-			tip:AddDoubleLine(c:White("Raid:"), c:Green("READY"))
-		else
-			tip:AddDoubleLine(c:White("Raid:"), c:Red("NOT READY"))
-		end
-		if true == RRL.selfready then
-			tip:AddDoubleLine(c:White("You:"), c:Green("READY"))
-		else
-			tip:AddDoubleLine(c:White("You:"), c:Red("NOT READY"))
-		end
-		tip:AddDoubleLine(
-			c:White("Ready:"),
-			c:Colorize(c:GetThresholdHexColor(RRL.count.rrl_ready,RRL.count.total), RRL.count.rrl_ready)
-			.. "/"..c:Green(RRL.count.total)
-		)
-		tip:AddDoubleLine(c:White("Not Ready:"), c:Red(RRL.count.rrl_notready) .. "/".. c:Red(RRL.count.max_notready))
-		tip:AddDoubleLine(c:White("Critical: "), c:Red(RRL.count.rrl_notready_crit))
-		tip:AddDoubleLine(c:White("Offline: "), c:Yellow(RRL.count.offline))
-		tip:AddDoubleLine(c:White("Unknown: "), c:Yellow(RRL.count.meta_unknown))
-		tip:AddDoubleLine(c:White("No Addon: "), c:Yellow(RRL.count.norrl))
-		if false == RRL.db.simpletooltip then
+		if true == RRL.db.exttooltip then
+			if true == RRL.raidready then
+				tip:AddDoubleLine(c:White("Raid"), c:Green("READY"))
+			else
+				tip:AddDoubleLine(c:White("Raid"), c:Red("NOT READY"))
+			end
+			if true == RRL.selfready then
+				tip:AddDoubleLine(c:White("You"), c:Green("READY"))
+			else
+				tip:AddDoubleLine(c:White("You"), c:Red("NOT READY"))
+			end
+			tip:AddDoubleLine(
+				c:White("Ready"),
+				c:Colorize(c:GetThresholdHexColor(RRL.count.rrl_ready,RRL.count.total), RRL.count.rrl_ready)
+				.. "/"..c:Green(RRL.count.total)
+			)
+			tip:AddDoubleLine(c:White("Not Ready"), c:Red(RRL.count.rrl_notready))
+			tip:AddDoubleLine(c:White("Max Not Ready"), c:Yellow(RRL.count.max_notready))
+			tip:AddDoubleLine(c:White("Critical"), c:Red(RRL.count.rrl_notready_crit))
+			tip:AddDoubleLine(c:White("Offline"), c:Yellow(RRL.count.offline))
+			tip:AddDoubleLine(c:White("New"), c:Yellow(RRL.count.new))
+			tip:AddDoubleLine(c:White("Pinged"), c:Yellow(RRL.count.pinged))
+			tip:AddDoubleLine(c:White("No Addon"), c:Yellow(RRL.count.norrl))
 			tip:AddLine(" ")
-			for k,v in pairs(RRL.members)
-			do
-				if RRL_STATE_OK == v.state then
-					if false == v.ready then
-						local critsuffix = ''
-						if true == v.critical then
-							critsuffix = '*'
-						end
-						tip:AddDoubleLine(c:White(k), c:Red('Not Ready'..critsuffix))
+		end
+		for k,v in pairs(RRL.members)
+		do
+			if RRL.STATE_OK == v.state then
+				if false == v.ready then
+					local critsuffix = ''
+					if true == v.critical then
+						critsuffix = '*'
 					end
-				elseif RRL_STATE_OFFLINE == v.state then
-					tip:AddDoubleLine(c:White(k), c:Yellow('Offline'))
-				elseif RRL_STATE_PINGED == v.state then
-					tip:AddDoubleLine(c:White(k), c:Yellow('Pinged'))
-				elseif RRL_STATE_NEW == v.state then
-					tip:AddDoubleLine(c:White(k), c:Yellow('New'))
-				elseif RRL_STATE_NORRL == v.state then
-					if false == v.ready then
-						tip:AddDoubleLine(c:White(k), c:Red('Not Ready'))
-					else
-						tip:AddDoubleLine(c:White(k), c:Yellow('No Addon'))
-					end
+					tip:AddDoubleLine(c:White(k), c:Red('Not Ready'..critsuffix))
+				end
+			elseif RRL.STATE_OFFLINE == v.state then
+				tip:AddDoubleLine(c:White(k), c:Yellow('Offline'))
+			elseif RRL.STATE_PINGED == v.state then
+				tip:AddDoubleLine(c:White(k), c:Yellow('Pinged'))
+			elseif RRL.STATE_NEW == v.state then
+				tip:AddDoubleLine(c:White(k), c:Yellow('New'))
+			elseif RRL.STATE_NORRL == v.state then
+				if false == v.ready then
+					tip:AddDoubleLine(c:White(k), c:Red('Not Ready'))
+				else
+					tip:AddDoubleLine(c:White(k), c:Yellow('No Addon'))
 				end
 			end
 		end
-		tip:AddLine(" ")
-		tip:AddLine(c:White("Left-click to change your status"))
-		tip:AddLine(c:White("Right-click to do a ready check"))
-		tip:AddLine(c:White("Control-Right-click to configure"))
 	end
+	tip:AddLine(" ")
+	tip:AddLine(c:White("Left-click to change your status"))
+	tip:AddLine(c:White("Right-click to do a ready check"))
+	tip:AddLine(c:White("Control-Right-click to configure"))
 	tip:Show()
 end
 
+-- update the LDB text
+function RRL:UpdateLDBText()
+	-- build the LDB text
+	local youstring
+	local raidstring
+	local countstring
+	if true == self.selfready then
+		youstring = c:Green("YOU")
+	else
+		youstring = c:Red("YOU")
+	end
+	if true == self.raidready then
+		self.ldb_obj.status = true
+		self.ldb_obj.icon = "Interface\\RAIDFRAME\\ReadyCheck-Ready.png"
+		raidstring = c:Green("RAID")
+	else
+		self.ldb_obj.status = false
+		self.ldb_obj.icon = "Interface\\RAIDFRAME\\ReadyCheck-NotReady.png"
+		raidstring = c:Red("RAID")
+	end
+	countstring = self.count.meta_ready.."/"..self.count.total
+	if self.count.rrl_notready_crit > 0 then
+		countstring = countstring .. "*"
+	end
+	self.ldb_obj.text = youstring .. "/" .. raidstring .. " " .. c:White(countstring)
+end
 --
 -- EOF

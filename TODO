@@ -18,13 +18,13 @@ TODO
 	
   - for now, just disable the option to change the update interval (during beta)
 
-- don't enable in a BG
+* don't enable in a BG
 
 - figure out why "everyone is ready" is displayed twice on ready check
 
-- change simple tooltip to extended tooltip - simple is just member exceptions, complex is counts
+* change simple tooltip to extended tooltip - simple is just member exceptions, complex is counts
 
-- re-work the way not ready members are displayed (two lines?  percentage?)
+* re-work the way not ready members are displayed (two lines?  percentage?)
 
 - figure out timer bug:
 
@@ -38,10 +38,30 @@ CallbackHandler-1.0-3 (Ampere):146: in function <Interface\AddOns\Ampere\Callbac
 CallbackHandler-1.0-3 (Ampere):91: in function `Fire'
 AceEvent-3.0-3 (Cork):70: in function <Interface\AddOns\Cork\AceEvent-3.0\AceEvent-3.0.lua:69>
 
-- reconsider the way that roster updates are done and throttled (check how epgp does it)
+* reconsider the way that roster updates are done and throttled (check how epgp does it)
 
 - if you were made not ready when you died, mark as ready when you rez
 
 - consider adding a mana check to go auto-not-ready (and auto-ready when you go back up)
 
 - 
+
+
+-- constants
+local RRL_STATE_OK = 0
+local RRL_STATE_NEW = 1
+local RRL_STATE_PINGED = 2
+local RRL_STATE_NORRL = 3
+local RRL_STATE_OFFLINE = 4
+
+- if ok, check recent; ping if more than 3*interval old
+  - increment ready or not ready, do crit check
+
+- if new, check timer, send ping if more than 3*interval old
+
+- if pinged, mark norrl if more than 2*interval old
+
+- if norrl, do afk check
+
+- if offline, do online check - if online again set to new
+

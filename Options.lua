@@ -118,12 +118,12 @@ RRL.options = {
 			func = 'Dump',
 			guiHidden = true,
         },
-		simpletooltip = {
+		extendedtooltip = {
 			type = 'toggle',
-			name = 'Simple Tooltip',
-			desc = 'toggle the simple tooltip on/off',
-			get  = function(info) return RRL.db.simpletooltip end,
-			set  = function(info) RRL.db.simpletooltip = not RRL.db.simpletooltip end,
+			name = 'Extended Tooltip',
+			desc = 'toggle the extended tooltip on/off',
+			get  = function(info) return RRL.db.exttooltip end,
+			set  = function(info) RRL.db.exttooltip = not RRL.db.exttooltip end,
 			order = 110,
 		},
     },
@@ -136,7 +136,7 @@ RRL.defaults = {
 		maxnotready = { 1, 3 },
 		readycheck_respond = 1,
 		critical = {},
-		simpletooltip = false,
+		exttooltip = false,
 	},
 }
 
