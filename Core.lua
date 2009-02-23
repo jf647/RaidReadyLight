@@ -414,7 +414,7 @@ function RRL:UpdateCounts()
 				self.count.pinged = self.count.pinged + 1
 			end
 		elseif RRL.STATE_OFFLINE == v.state then
-			if nil ~= UnitIsConnected(member) then
+			if nil ~= UnitIsConnected(k) then
 				self.count.offline = self.count.offline + 1
 			else
 				self.count.new = self.count.new + 1
