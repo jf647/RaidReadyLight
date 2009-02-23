@@ -44,24 +44,7 @@ AceEvent-3.0-3 (Cork):70: in function <Interface\AddOns\Cork\AceEvent-3.0\AceEve
 
 - consider adding a mana check to go auto-not-ready (and auto-ready when you go back up)
 
-- 
+- make ctrl-right click work when not in a raid
 
-
--- constants
-local RRL_STATE_OK = 0
-local RRL_STATE_NEW = 1
-local RRL_STATE_PINGED = 2
-local RRL_STATE_NORRL = 3
-local RRL_STATE_OFFLINE = 4
-
-- if ok, check recent; ping if more than 3*interval old
-  - increment ready or not ready, do crit check
-
-- if new, check timer, send ping if more than 3*interval old
-
-- if pinged, mark norrl if more than 2*interval old
-
-- if norrl, do afk check
-
-- if offline, do online check - if online again set to new
+- updatecounts firing way too often
 

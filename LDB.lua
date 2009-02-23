@@ -18,15 +18,13 @@ RRL.ldb_obj = LibStub("LibDataBroker-1.1"):NewDataObject("RRL", {
 
 -- onclick handler
 function RRL.ldb_obj.OnClick(_, which)
-	if true == RRL.inraid then
-		if "LeftButton" == which then
-			RRL:ToggleReady(false)
-		elseif "RightButton" == which then
-			if IsControlKeyDown() then
-				InterfaceOptionsFrame_OpenToCategory(RRL.optionsFrames.rrl)
-			else
-				DoReadyCheck()
-			end
+	if "LeftButton" == which and true == RRL.inraid then
+		RRL:ToggleReady(false)
+	elseif "RightButton" == which then
+		if IsControlKeyDown() then
+			InterfaceOptionsFrame_OpenToCategory(RRL.optionsFrames.rrl)
+		elseif true == RRL.inraid then
+			DoReadyCheck()
 		end
 	end
 end

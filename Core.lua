@@ -27,6 +27,7 @@ local c = LibStub("LibCrayon-3.0")
 
 -- local variables
 local send_timer
+local update_counts_timer
 local db
 
 -- state variables
@@ -91,6 +92,7 @@ end
 
 -- disable
 function RRL:OnDisable()
+	self:CancelAllTimers()
 	self:UnegisterAllEvents()
 	self:UnhookAll()
 end
@@ -131,12 +133,13 @@ function RRL:LeaveRaid()
 	if self.debug then
 		self:Print("leaving a raid")
 	end
-	self.ldb_obj.text = "Not Active"
 	-- unhook ready checks
 	if self:IsHooked("ShowReadyCheck") then
 		self:Unhook("ShowReadyCheck")
 	end
 	self:UnregisterEvent("READY_CHECK")
+	-- cancel pending timers
+	self:CancelAllTimers()
 	-- stop sending updates
 	self:CancelTimer(send_timer, true)
 	-- unregister receiving messages
@@ -146,6 +149,9 @@ function RRL:LeaveRaid()
 	self:UnregisterEvent("PLAYER_DEAD")
 	-- unregister events
 	self:UnregisterEvent("RRL_SEND_STATUS")
+	-- reset LDB object to out of raid status
+	self.ldb_obj.text = "Not Active"
+	self.ldb_obj.icon = "Interface\\RAIDFRAME\\ReadyCheck-Ready.png"
 end
 
 -- check our raid status and raid roster
@@ -197,6 +203,9 @@ function RRL:PLAYER_FLAGS_CHANGED(event, member)
 			self:Print("AFK: setting you", c:Red("NOT READY"))
 			self.selfready = false
 			self:UpdateLDBText()
+			if self.debug then
+				self:Print("you went AFK, updating counts")
+			end
 			self:UpdateCounts()
 		end
 	end
@@ -224,6 +233,9 @@ function RRL:OnCommReceived(prefix, message, distribution, sender)
 			critical = oldcritical,
 		}
 		if oldready ~= senderready then
+			if self.debug then
+				self:Print(sender,"old=",oldready,"new=",senderready,";updating counts")
+			end
 			self:UpdateCounts()
 		end
 	elseif 'PING' == msgtype then
@@ -316,6 +328,9 @@ function RRL:UpdateRoster()
 	self.members = newmembers
 	-- re-schedule ourselves in one interval's time
 	self:ScheduleTimer('UpdateRoster', db.updateinterval)
+	if self.debug then
+		self:Print("updating counts after updating roster")
+	end
 	self:UpdateCounts()
 end
 
@@ -414,7 +429,7 @@ function RRL:UpdateCounts()
 				self.count.pinged = self.count.pinged + 1
 			end
 		elseif RRL.STATE_OFFLINE == v.state then
-			if nil ~= UnitIsConnected(k) then
+			if nil == UnitIsConnected(k) then
 				self.count.offline = self.count.offline + 1
 			else
 				self.count.new = self.count.new + 1
