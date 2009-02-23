@@ -7,5 +7,6 @@
 
 embeds.xml
                                  
+Options.lua
+LDB.lua
 Core.lua
-

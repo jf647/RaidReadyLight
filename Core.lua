@@ -23,16 +23,14 @@ local RRL_STATE_OFFLINE = 4
 local c = LibStub("LibCrayon-3.0")
 
 -- locale setup
-local L = LibStub("AceLocale-3.0"):GetLocale("RRL", true)
+--local L = LibStub("AceLocale-3.0"):GetLocale("RRL", true)
 
 -- local variables
 local send_timer
 local process_timer
 local updateroster_timer
 local updateroster_recur_timer
-local ldb_tip
 local db
-local acd
 
 -- state variables
 RRL.inraid  = false
@@ -59,163 +57,6 @@ RRL.count = {
 RRL.members = {}
 RRL.optionsFrames = {}
 
--- LDB setup
-local ldb_obj = LibStub("LibDataBroker-1.1"):NewDataObject("RRL", {
-	type  = "data source",
-	label = 'RRL',
-	text  = "Not Active",
-	icon  = "Interface\\RAIDFRAME\\ReadyCheck-Ready.png",
-})
-function ldb_obj.OnClick(_, which)
-	if true == RRL.inraid then
-		if "LeftButton" == which then
-			RRL:ToggleReady(false)
-		elseif "RightButton" == which then
-			if IsControlKeyDown() then
-				InterfaceOptionsFrame_OpenToCategory(RRL.optionsFrames.rrl)
-			else
-				DoReadyCheck()
-			end
-		end
-	end
-end
-
--- slash commands
-RRL.options = {
-    name = "rrl",
-    handler = RRL,
-    type = 'group',
-    args = {
-        max = {
-			name = 'Max Not Ready',
-			desc = 'set maximum not ready members',
-			type = 'group',
-			args = {
-				normal = {
-					type = 'range',
-					name = 'Normal Raids',
-					desc = 'maximum not ready members',
-					min  = 0,
-					max  = 10,
-					step = 1,
-					set  = function(info, value) RRL:SetMax(1, 0, 10, value) end,
-					get  = function(info) return db.maxnotready[1] end,
-					order = 100,
-				},
-				heroic = {
-					type = 'range',
-					name = 'Heroic Raids',
-					desc = 'maximum not ready members',
-					min  = 0,
-					max  = 25,
-					step = 1,
-					set  = function(info, value) RRL:SetMax(2, 0, 25, value) end,
-					get  = function(info) return db.maxnotready[2] end,
-					order = 110,
-				},
-			},
-        },
-        critical = {
-		    name = 'Critical Members',
-			desc = 'manipulate list of members who must be ready',
-            type = 'group',
-            args = {
-                add = {
-                    type = 'input',
-                    name = 'Add',
-                    desc = 'add a member who must be ready',
-                    set = 'AddCritical',
-					order = 100,
-                },
-                del = {
-                    type = 'input',
-                    name = 'Delete',
-                    desc = 'delete a member who must be ready',
-                    set = 'DelCritical',
-					order = 110,
-                },
-                list = {
-                    type = 'execute',
-                    name = 'List',
-                    desc = 'lists members who must be ready',
-                    func  = 'ListCritical',
-					order = 200,
-                },
-                clear = {
-                    type = 'execute',
-                    name = 'Clear',
-                    desc = 'clears members who must be ready',
-                    func  = 'ClearCritical',
-					order = 210,
-                },
-            },
-        },
-        interval = {
-            type = 'range',
-            name = 'get/set update interval',
-            desc = 'get or set the raid update interval',
-			min  = 1,
-			max  = 3600,
-			step = 1,
-			bigStep = 30,
-            set  = 'SetInterval',
-            get  = function(info) return db.updateinterval end,
-			disabled = true,
-			order = 100,
-        },
-		readycheck = {
-			type = 'toggle',
-			name = 'Readycheck Reply',
-			desc = 'auto-respond to ready checks',
-			get  = function(info) return db.readycheck_respond end,
-			set  = 'ToggleReadyCheck',
-			order = 120,
-		},
-		debug = {
-			type = 'toggle',
-			name = 'Debug',
-			desc = 'enable/disable debug messages',
-			get  = function(info) return RRL.debug end,
-			set  = function(info) RRL.debug = not RRL.debug end,
-			order = 130,
-		},
-        r = {
-            type = 'toggle',
-            name = 'Ready',
-            desc = 'toggle your ready state',
-            get  = 'GetReady',
-			set  = function(info) RRL:ToggleReady(true) end,
-			guiHidden = true,
-        },
-        d = {
-            type = 'execute',
-            name = 'Dump State',
-            desc = 'dump the member state table',
-			func = 'Dump',
-			guiHidden = true,
-        },
-		simpletooltip = {
-			type = 'toggle',
-			name = 'Simple Tooltip',
-			desc = 'toggle the simple tooltip on/off',
-			get  = function(info) return db.simpletooltip end,
-			set  = function(info) db.simpletooltip = not db.simpletooltip end,
-			order = 110,
-		},
-    },
-}
-
--- default profile
-RRL.defaults = {
-    profile = {
-	    updateinterval = 30,
-		maxnotready = { 1, 3 },
-		readycheck_respond = 1,
-		critical = {},
-		simpletooltip = false,
-	},
-}
-
 -- init
 function RRL:OnInitialize()
     -- load saved variables
@@ -227,15 +68,13 @@ function RRL:OnInitialize()
 	-- get a local reference to our profile
 	db = self.database.profile
 	self.db = db
-	
 	-- add AceDB profile handler (broken, gives error in library when standalone)
 	--self.options.args.profile = LibStub("AceDBOptions-3.0"):GetOptionsTable(self.db)
 	--self.options.args.profile.order = 200
 	-- register options
 	LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("Raid Ready Light", self.options)
 	LibStub("AceConfig-3.0"):RegisterOptionsTable("Raid Ready Light", self.options, "rrl")
-	acd = LibStub("AceConfigDialog-3.0")
-	self.optionsFrames.rrl = acd:AddToBlizOptions("Raid Ready Light")
+	self.optionsFrames.rrl = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Raid Ready Light")
 end
 
 -- our profile has changed, get a new local reference
@@ -279,7 +118,7 @@ function RRL:JoinRaid()
     send_timer = self:ScheduleRepeatingTimer('RRL_SEND_UPDATE', db.updateinterval)
 	-- check our roster, then start firing at 3 times the update interval
 	self:UpdateRoster(false)
-	updateroster_recur_timer = self:ScheduleRepeatingTimer('UpdateRoster', 3 * db.updateinterval, true)
+	updateroster_recur_timer = self:ScheduleRepeatingTimer('UpdateRoster', (3*db.updateinterval), true)
 	-- hook ready checks if requested to
 	if db.readycheck_respond then
 		if not self:IsHooked("ShowReadyCheck") then
@@ -299,7 +138,7 @@ function RRL:LeaveRaid()
 	if self.debug then
 		self:Print("leaving a raid")
 	end
-	ldb_obj.text = "Not Active"
+	self.ldb_obj.text = "Not Active"
 	-- unhook ready checks
 	if self:IsHooked("ShowReadyCheck") then
 		self:Unhook("ShowReadyCheck")
@@ -592,181 +431,19 @@ function RRL:RRL_UPDATE_STATUS()
 		youstring = c:Red("YOU")
 	end
 	if true == self.raidready then
-		ldb_obj.status = true
-		ldb_obj.icon = "Interface\\RAIDFRAME\\ReadyCheck-Ready.png"
+		self.ldb_obj.status = true
+		self.ldb_obj.icon = "Interface\\RAIDFRAME\\ReadyCheck-Ready.png"
 		raidstring = c:Green("RAID")
 	else
-		ldb_obj.status = false
-		ldb_obj.icon = "Interface\\RAIDFRAME\\ReadyCheck-NotReady.png"
+		self.ldb_obj.status = false
+		self.ldb_obj.icon = "Interface\\RAIDFRAME\\ReadyCheck-NotReady.png"
 		raidstring = c:Red("RAID")
 	end
 	countstring = self.count.meta_ready.."/"..self.count.total
 	if self.count.rrl_notready_crit > 0 then
 		countstring = countstring .. "*"
 	end
-	ldb_obj.text = youstring .. "/" .. raidstring .. " " .. c:White(countstring)
-end
-
--- display the LDB tooltip
-function ldb_obj.OnTooltipShow(tip)
-	if not ldb_tip then
-		ldb_tip = tip
-	end
-	tip:ClearLines()
-	tip:AddLine(c:White("RRL: Raid Ready Light"))
-	tip:AddLine(" ")
-	if false == RRL.inraid then
-		tip:AddLine(c:White("Only active when in a raid"))
-	else
-		if true == RRL.raidready then
-			tip:AddDoubleLine(c:White("Raid:"), c:Green("READY"))
-		else
-			tip:AddDoubleLine(c:White("Raid:"), c:Red("NOT READY"))
-		end
-		if true == RRL.selfready then
-			tip:AddDoubleLine(c:White("You:"), c:Green("READY"))
-		else
-			tip:AddDoubleLine(c:White("You:"), c:Red("NOT READY"))
-		end
-		tip:AddDoubleLine(
-			c:White("Ready:"),
-			c:Colorize(c:GetThresholdHexColor(RRL.count.rrl_ready,RRL.count.total), RRL.count.rrl_ready)
-			.. "/"..c:Green(RRL.count.total)
-		)
-		tip:AddDoubleLine(c:White("Not Ready:"), c:Red(RRL.count.rrl_notready) .. "/".. c:Red(RRL.count.max_notready))
-		tip:AddDoubleLine(c:White("Critical: "), c:Red(RRL.count.rrl_notready_crit))
-		tip:AddDoubleLine(c:White("Offline: "), c:Yellow(RRL.count.offline))
-		tip:AddDoubleLine(c:White("Unknown: "), c:Yellow(RRL.count.meta_unknown))
-		tip:AddDoubleLine(c:White("No Addon: "), c:Yellow(RRL.count.norrl))
-		if false == RRL.db.simpletooltip then
-			tip:AddLine(" ")
-			for k,v in pairs(RRL.members)
-			do
-				if RRL_STATE_OK == v.state then
-					if false == v.ready then
-						local critsuffix = ''
-						if true == v.critical then
-							critsuffix = '*'
-						end
-						tip:AddDoubleLine(c:White(k), c:Red('Not Ready'..critsuffix))
-					end
-				elseif RRL_STATE_OFFLINE == v.state then
-					tip:AddDoubleLine(c:White(k), c:Yellow('Offline'))
-				elseif RRL_STATE_PINGED == v.state then
-					tip:AddDoubleLine(c:White(k), c:Yellow('Pinged'))
-				elseif RRL_STATE_NEW == v.state then
-					tip:AddDoubleLine(c:White(k), c:Yellow('New'))
-				elseif RRL_STATE_NORRL == v.state then
-					if false == v.ready then
-						tip:AddDoubleLine(c:White(k), c:Red('Not Ready'))
-					else
-						tip:AddDoubleLine(c:White(k), c:Yellow('No Addon'))
-					end
-				end
-			end
-		end
-		tip:AddLine(" ")
-		tip:AddLine(c:White("Left-click to change your status"))
-		tip:AddLine(c:White("Right-click to do a ready check"))
-		tip:AddLine(c:White("Control-Right-click to configure"))
-	end
-	tip:Show()
-end
-
--- set the max number of not ready members
-function RRL:SetMax(instancetype, min, max, value)
-	if value < min or value > max then
-		self:Print("max not ready members for", instancetype, "is", min .. '-' .. max)
-	else
-		db.maxnotready[instancetype] = value
-		self:CancelTimer(process_timer, true)
-		process_timer = self:ScheduleTimer('RRL_UPDATE_STATUS', 1)
-	end
-end
-
--- set the update interval
-function RRL:SetInterval(info, interval)
-	if interval < 1 or interval > 600 then
-		self:Print("interval range: 1-600")
-	else
-		db.updateinterval = interval
-		self:CancelTimer(send_timer, true)
-		send_timer = self:ScheduleRepeatingTimer('RRL_SEND_UPDATE', interval)
-	end
-end
-
--- lists critical members
-function RRL:ListCritical()
-	self:Print("Members who must be ready:")
-    for k,v in pairs(db.critical)
-	do
-		self:Print(k)
-	end
-end
-
--- clears critical members
-function RRL:ClearCritical()
-	self:Print("critical members list has been cleared")
-	db.critical = {}
-	self:CancelTimer(process_timer, true)
-	process_timer = self:ScheduleTimer('RRL_UPDATE_STATUS', 1)
-end
-
--- adds a critical member
-function RRL:AddCritical(info, member)
-	if "" ~= member then
-		if db.critical[member] then
-			self:Print("'"..member.."' was already on the critical list")
-		else
-			db.critical[member] = 1
-			self:Print("added '"..member.."' to the critical list")
-		end
-	else
-		member = UnitName('target')
-		if nil ~= member then
-			if db.critical[member] then
-				self:Print("'"..member.."' was already on the critical list")
-			else
-				db.critical[member] = 1
-				self:Print("added '"..member.."' to the critical list")
-			end
-		else
-			self:Print("usage: /rrl critical add name (uses target if no name)")
-		end
-	end
-	self:CancelTimer(process_timer, true)
-	process_timer = self:ScheduleTimer('RRL_UPDATE_STATUS', 1)
-end
-
--- deletes a critical member
-function RRL:DelCritical(info, member)
-	if "" ~= member then
-		if db.critical[member] then
-			db.critical[member] = nil
-			self:Print("removed '"..member.."' from the critical list")
-		else
-			self:Print("'"..member.."' is not on the critical list")
-		end
-	else
-		member = UnitName('target')
-		if nil ~= member then
-			if db.critical[member] then
-				db.critical[member] = nil
-				self:Print("removed '"..member.."' from the critical list")
-			else
-				self:Print("'"..member.."' is not on the critical list")
-			end
-		else
-			self:Print("usage: /rrl critical del name (uses target if no name)")
-		end
-	end
-	self:CancelTimer(process_timer, true)
-	process_timer = self:ScheduleTimer('RRL_UPDATE_STATUS', 1)
-end
-
--- get ready state
-function RRL:GetReady()
-	return self.selfready
+	self.ldb_obj.text = youstring .. "/" .. raidstring .. " " .. c:White(countstring)
 end
 
 -- toggle ready state
@@ -782,27 +459,6 @@ function RRL:ToggleReady(toconsole)
 	self:RRL_SEND_UPDATE()
 end
 
--- toggle ready state
-function RRL:ToggleReadyCheck()
-    db.readycheck_respond = not db.readycheck_respond
-	if db.readycheck_respond then
-		self:Print("will auto-respond to ready checks")
-		if inraid then
-			if not self:IsHooked("ShowReadyCheck") then
-				self:RawHook("ShowReadyCheck", true)
-			end
-			RRL:RegisterEvent("READY_CHECK")
-		end
-	else
-		self:Print("will not auto-respond to ready checks")
-		if inraid then
-			if self:IsHooked("ShowReadyCheck") then
-				self:Unhook("ShowReadyCheck")
-			end
-			RRL:UnregisterEvent("READY_CHECK")
-		end
-	end
-end
 
 -- respond to a ready check for the user
 function RRL:READY_CHECK()
@@ -815,7 +471,7 @@ function RRL:READY_CHECK()
 	end
 end
 
--- play the ready check sound but do not show the dialog
+-- play the ready check sound
 function RRL:ShowReadyCheck()
 	PlaySound("ReadyCheck")
 end

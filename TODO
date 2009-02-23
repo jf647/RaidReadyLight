@@ -42,5 +42,6 @@ AceEvent-3.0-3 (Cork):70: in function <Interface\AddOns\Cork\AceEvent-3.0\AceEve
 
 - if you were made not ready when you died, mark as ready when you rez
 
+- consider adding a mana check to go auto-not-ready (and auto-ready when you go back up)
+
 - 
-  
