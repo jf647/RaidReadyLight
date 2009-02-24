@@ -26,15 +26,12 @@ local c = LibStub("LibCrayon-3.0")
 --local L = LibStub("AceLocale-3.0"):GetLocale("RRL", true)
 
 -- local variables
-local send_timer
-local update_counts_timer
 local db
 
 -- state variables
 RRL.inraid  = false
 RRL.raidready = false
 RRL.selfready = false
-RRL.debug = false
 RRL.lastrosterupdate = 0
 RRL.rosterupdatemin = 5
 RRL.lastcountupdate = 0
@@ -111,7 +108,7 @@ function RRL:JoinRaid()
     self:RegisterComm("RRL1")
 	-- send a status msg, then start firing them on a timer
 	self:RRL_SEND_STATUS()
-    send_timer = self:ScheduleRepeatingTimer('RRL_SEND_STATUS', db.updateinterval)
+    self.send_timer = self:ScheduleRepeatingTimer('RRL_SEND_STATUS', db.updateinterval)
 	-- check our roster, then start firing at 3 times the update interval
 	self:UpdateRoster()
 	-- hook ready checks if requested to
@@ -141,7 +138,7 @@ function RRL:LeaveRaid()
 	-- cancel pending timers
 	self:CancelAllTimers()
 	-- stop sending updates
-	self:CancelTimer(send_timer, true)
+	self:CancelTimer(self.send_timer, true)
 	-- unregister receiving messages
 	self:UnregisterComm("RRL1")
 	-- unregister WoW events
@@ -224,19 +221,22 @@ function RRL:OnCommReceived(prefix, message, distribution, sender)
 		if '0' == data then
 			senderready = false
 		end
-		local oldready = self.members[sender].ready
-		local oldcritical = self.members[sender].critical
-		self.members[sender] = {
-			state = RRL.STATE_OK,
-			ready = senderready,
-			last = time(),
-			critical = oldcritical,
-		}
-		if oldready ~= senderready then
-			if self.debug then
-				self:Print(sender,"old=",oldready,"new=",senderready,";updating counts")
+		if nil ~= self.members[sender] then
+			local oldready = self.members[sender].ready
+			local oldcritical = self.members[sender].critical
+			self.members[sender] = {
+				state = RRL.STATE_OK,
+				ready = senderready,
+				last = time(),
+				critical = oldcritical,
+			}
+			if oldready ~= senderready then
+				self:UpdateCounts()
 			end
-			self:UpdateCounts()
+		else
+			if self.debug then
+				self:Print("received msg from unknown member",sender)
+			end
 		end
 	elseif 'PING' == msgtype then
 		self:RRL_SEND_STATUS(sender)

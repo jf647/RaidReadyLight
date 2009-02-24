@@ -108,7 +108,6 @@ RRL.options = {
             name = 'Ready',
             desc = 'toggle your ready state',
             get  = 'GetReady',
-			set  = function(info) RRL:ToggleReady(true) end,
 			guiHidden = true,
         },
         d = {
@@ -146,8 +145,6 @@ function RRL:SetMax(instancetype, min, max, value)
 		self:Print("max not ready members for", instancetype, "is", min .. '-' .. max)
 	else
 		RRL.db.maxnotready[instancetype] = value
-		self:CancelTimer(process_timer, true)
-		process_timer = self:ScheduleTimer('RRL_UPDATE_STATUS', 1)
 	end
 end
 
@@ -157,8 +154,8 @@ function RRL:SetInterval(info, interval)
 		self:Print("interval range: 1-600")
 	else
 		RRL.db.updateinterval = interval
-		self:CancelTimer(send_timer, true)
-		send_timer = self:ScheduleRepeatingTimer('RRL_SEND_UPDATE', interval)
+		self:CancelTimer(self.send_timer, true)
+		self.send_timer = self:ScheduleRepeatingTimer('RRL_SEND_UPDATE', interval)
 	end
 end
 
@@ -175,8 +172,6 @@ end
 function RRL:ClearCritical()
 	self:Print("critical members list has been cleared")
 	RRL.db.critical = {}
-	self:CancelTimer(process_timer, true)
-	process_timer = self:ScheduleTimer('RRL_UPDATE_STATUS', 1)
 end
 
 -- adds a critical member
@@ -201,8 +196,6 @@ function RRL:AddCritical(info, member)
 			self:Print("usage: /rrl critical add name (uses target if no name)")
 		end
 	end
-	self:CancelTimer(process_timer, true)
-	process_timer = self:ScheduleTimer('RRL_UPDATE_STATUS', 1)
 end
 
 -- deletes a critical member
@@ -227,8 +220,6 @@ function RRL:DelCritical(info, member)
 			self:Print("usage: /rrl critical del name (uses target if no name)")
 		end
 	end
-	self:CancelTimer(process_timer, true)
-	process_timer = self:ScheduleTimer('RRL_UPDATE_STATUS', 1)
 end
 
 -- toggle auto-responding to ready checks

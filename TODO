@@ -18,33 +18,9 @@ TODO
 	
   - for now, just disable the option to change the update interval (during beta)
 
-* don't enable in a BG
-
 - figure out why "everyone is ready" is displayed twice on ready check
-
-* change simple tooltip to extended tooltip - simple is just member exceptions, complex is counts
-
-* re-work the way not ready members are displayed (two lines?  percentage?)
-
-- figure out timer bug:
-
-[2009/02/22 14:47:47-275-x1]: AceTimer-3.0: TimeLeft(handle): 'table: 3215E580' - no such timer registered:
-RRL-0.6\Core.lua:422: in function `UpdateRoster'
-RRL-0.6\Core.lua:332: in function `?'
-CallbackHandler-1.0-3 (Ampere):146: in function <Interface\AddOns\Ampere\CallbackHandler-1.0.lua:146>
-<string>:"safecall Dispatcher[1]":4: in function <[string "safecall Dispatcher[1]"]:4>
-<in C code>: ?
-<string>:"safecall Dispatcher[1]":13: in function `?'
-CallbackHandler-1.0-3 (Ampere):91: in function `Fire'
-AceEvent-3.0-3 (Cork):70: in function <Interface\AddOns\Cork\AceEvent-3.0\AceEvent-3.0.lua:69>
-
-* reconsider the way that roster updates are done and throttled (check how epgp does it)
 
 - if you were made not ready when you died, mark as ready when you rez
 
 - consider adding a mana check to go auto-not-ready (and auto-ready when you go back up)
-
-- make ctrl-right click work when not in a raid
-
-- updatecounts firing way too often
 
