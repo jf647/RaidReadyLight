@@ -15,12 +15,19 @@ TODO
 
   - avoids problem where someone with a low update interval will constantly consider someone with
     an interval > 3 times theirs to be stale and in need of a ping
-	
+    
   - for now, just disable the option to change the update interval (during beta)
 
 - figure out why "everyone is ready" is displayed twice on ready check
 
-- if you were made not ready when you died, mark as ready when you rez
-
 - consider adding a mana check to go auto-not-ready (and auto-ready when you go back up)
 
+- add a proper traffic light graphical frame (toggleable on/off)
+
+  - states: you ready, raid ready = green
+            you ready, raid not = red
+            you not ready, raid ready = yellow
+            you not ready, raid not ready = red
+            
+  - mouseover shows ready state
+  
