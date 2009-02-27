@@ -30,4 +30,25 @@ TODO
             you not ready, raid not ready = red
             
   - mouseover shows ready state
+
+- change update of LDB text to be event driven
+
+- use the same event to drive changes to the traffic light frame
+
+- selfready to a number so we can use 'STATUS ' .. tostring(self.selfready)
+
+- replace UpdateRoster with add new memember to roster when receiving update
+
+- add initial scan of the raid roster that sets everyone to STATE_NEW
+
+- when RAID_ROSTER_UPDATE fires, just walk our member list, removing anyone who isn't in the raid any longer
+
+- do we still need to periodically scan the roster (5 mins?) in case we miss someone leaving?  need to see how it
+  performs in raids.  Perhaps we can check our total vs the raid members total and trigger a re-scan if the numbers
+  are different.  That doesn't completely insulate us if we miss both someone leaving and joining, but it gets us
+  close in a lightweight fashion.
   
+- we could also do a check after someone was marked as "no addon" for some large multiple of the update interval
+  and if they were no longer in the raid, trigger a re-scan or just remove them
+  
+- 
