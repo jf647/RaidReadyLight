@@ -150,8 +150,6 @@ RRL.defaults = {
 		exttooltip = false,
         minion = true,
         minionscale = 1.0,
-        statusframex = -100,
-        statusframey = 0,
 	},
 }
 

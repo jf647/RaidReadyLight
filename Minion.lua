@@ -16,7 +16,12 @@ function RRL:CreateMinion()
     t:SetTexture("Interface\\Addons\\RRL\\Images\\trafficlight_red.tga")
     t:SetAllPoints(f)
     f.texture = t
-	f:SetPoint('CENTER', self.db.statusframex, self.db.statusframey)
+    if self.db.statusframex then
+        f:SetPoint('BOTTOMLEFT', self.db.statusframex, self.db.statusframey)
+    else
+        f:SetPoint('CENTER', -100, 0)
+        self.db.statusframex, self.db.statusframey = f:GetCenter()
+    end
     f:SetScript("OnDragStart", function(frame)
         if IsAltKeyDown() then
             ismoving = true
