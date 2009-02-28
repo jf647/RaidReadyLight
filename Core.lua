@@ -14,7 +14,7 @@ RRL = LibStub("AceAddon-3.0"):NewAddon(
 )
 
 -- XXX development mode, force debug on
-RRL:ToggleDebugLog(true)
+---RRL:ToggleDebugLog(true)
 
 -- constants
 RRL.STATE_OK = 0
