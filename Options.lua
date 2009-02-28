@@ -103,13 +103,6 @@ RRL.options = {
 			set  = function(info) RRL.debug = not RRL.debug end,
 			order = 130,
 		},
-        r = {
-            type = 'toggle',
-            name = 'Ready',
-            desc = 'toggle your ready state',
-            get  = 'GetReady',
-			guiHidden = true,
-        },
         d = {
             type = 'execute',
             name = 'Dump State',
@@ -172,6 +165,7 @@ end
 function RRL:ClearCritical()
 	self:Print("critical members list has been cleared")
 	RRL.db.critical = {}
+    self:BuildRoster()
 end
 
 -- adds a critical member
@@ -182,6 +176,7 @@ function RRL:AddCritical(info, member)
 		else
 			RRL.db.critical[member] = 1
 			self:Print("added '"..member.."' to the critical list")
+            self:BuildRoster()
 		end
 	else
 		member = UnitName('target')
@@ -191,6 +186,7 @@ function RRL:AddCritical(info, member)
 			else
 				RRL.db.critical[member] = 1
 				self:Print("added '"..member.."' to the critical list")
+                self:BuildRoster()
 			end
 		else
 			self:Print("usage: /rrl critical add name (uses target if no name)")
@@ -204,6 +200,7 @@ function RRL:DelCritical(info, member)
 		if RRL.db.critical[member] then
 			RRL.db.critical[member] = nil
 			self:Print("removed '"..member.."' from the critical list")
+            self:BuildRoster()
 		else
 			self:Print("'"..member.."' is not on the critical list")
 		end
@@ -213,6 +210,7 @@ function RRL:DelCritical(info, member)
 			if RRL.db.critical[member] then
 				RRL.db.critical[member] = nil
 				self:Print("removed '"..member.."' from the critical list")
+                self:BuildRoster()
 			else
 				self:Print("'"..member.."' is not on the critical list")
 			end
@@ -224,10 +222,9 @@ end
 
 -- toggle auto-responding to ready checks
 function RRL:ToggleReadyCheck()
-    RRL.db.readycheck_respond = not db.readycheck_respond
+    RRL.db.readycheck_respond = not RRL.db.readycheck_respond
 	if RRL.db.readycheck_respond then
-		self:Print("will auto-respond to ready checks")
-		if inraid then
+		if 1 == self.state.inraid then
 			if not self:IsHooked("ShowReadyCheck") then
 				self:RawHook("ShowReadyCheck", true)
 			end
@@ -235,12 +232,10 @@ function RRL:ToggleReadyCheck()
 		end
 	else
 		self:Print("will not auto-respond to ready checks")
-		if inraid then
-			if self:IsHooked("ShowReadyCheck") then
-				self:Unhook("ShowReadyCheck")
-			end
-			RRL:UnregisterEvent("READY_CHECK")
+		if self:IsHooked("ShowReadyCheck") then
+			self:Unhook("ShowReadyCheck")
 		end
+		RRL:UnregisterEvent("READY_CHECK")
 	end
 end
 

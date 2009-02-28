@@ -18,6 +18,7 @@ RRL.STATE_NEW = 1
 RRL.STATE_PINGED = 2
 RRL.STATE_NORRL = 3
 RRL.STATE_OFFLINE = 4
+RRL.STATE_AFK = 5
 
 -- external libs
 local c = LibStub("LibCrayon-3.0")
@@ -26,8 +27,10 @@ local c = LibStub("LibCrayon-3.0")
 --local L = LibStub("AceLocale-3.0"):GetLocale("RRL", true)
 
 -- state variables
+RRL.debug = true
 RRL.state = {
     inraid = 0,
+    max_notready = 0,
     ready = {
         raid = 0,
         self = 0,
@@ -36,15 +39,14 @@ RRL.state = {
         rrl = {
             ready = 0,
             notready = 0,
+            crit_notready = 0,
         },
-        noaddon = {
-            ready = 0,
-            afk = 0,
-        },
-        unknown = {
+        other = {
             offline = 0,
             new = 0,
             pinged = 0,
+            noaddon = 0,
+            afk = 0,
         },
         total = {
             all = 0,
@@ -53,7 +55,6 @@ RRL.state = {
         },
     },
 }
-RRL.roster = {}
 
 -- init
 function RRL:OnInitialize()
@@ -71,6 +72,7 @@ function RRL:OnInitialize()
 	-- register options
 	LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("Raid Ready Light", self.options)
 	LibStub("AceConfig-3.0"):RegisterOptionsTable("Raid Ready Light", self.options, "rrl")
+    self.optionsFrames = {}
 	self.optionsFrames.rrl = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Raid Ready Light")
 end
 
@@ -96,31 +98,22 @@ end
 -- check our raid status and raid roster
 function RRL:CheckRaid()
 	if GetNumRaidMembers() > 0 then
-		local isin, instancetype = IsInInstance()
-		if isin then
-			if 'pvp' ~= instancetype then
-				if not self.inraid then
-					self.inraid = true
-					self:JoinRaid()
-				end
-			else
-				if self.debug then
-					self:Print("we're in a raidgroup, but not a raid:", instancetype)
-				end
-                return
-			end
-		else
-			if not self.inraid then
-				self.inraid = true
-				self:JoinRaid()
-			end
+		local ininstance, instancetype = IsInInstance()
+        if ininstance and 'pvp' == instancetype then
+            if 1 == self.state.inraid then
+                self.state.inraid = 0
+                self:LeaveRaid()
+            end
+            return
+		elseif 0 == self.state.inraid then
+			self.state.inraid = 1
+			self:JoinRaid()
+        elseif 1 == self.state.inraid then
+            self:CheckRoster()
 		end
-        if self.inraid then
-            self:UpdateRoster()
-        end
 	else
-		if self.inraid then
-			self.inraid = false
+		if 1 == self.state.inraid then
+			self.state.inraid = 0
 			self:LeaveRaid()
 		end
 	end
@@ -139,8 +132,10 @@ function RRL:JoinRaid()
 	-- send a status msg, then start firing them on a timer
 	self:SendStatus()
     self.send_timer = self:ScheduleRepeatingTimer('SendStatus', self.db.updateinterval)
-	-- check our roster, then start firing at 3 times the update interval
-	self:UpdateRoster()
+	-- build our initial roster
+	self:BuildRoster()
+    -- start firing our maint roster event every interval
+    self:ScheduleRepeatingTimer('MaintRoster', self.db.updateinterval)
 	-- hook ready checks if requested to
 	if self.db.readycheck_respond then
 		if not self:IsHooked("ShowReadyCheck") then
@@ -173,166 +168,196 @@ function RRL:LeaveRaid()
 	self:UnregisterEvent("PLAYER_FLAGS_CHANGED")
 	self:UnregisterEvent("PLAYER_DEAD")
 	-- reset LDB object to out of raid status
-	self.ldb_obj.text = "Not Active"
-	self.ldb_obj.icon = "Interface\\RAIDFRAME\\ReadyCheck-Ready.png"
+    self:UpdateLDBText()
 end
 
 -- process a received addon message
 function RRL:OnCommReceived(prefix, message, distribution, sender)
+
     -- split the message into msgtype, data
 	local _, _, msgtype, data = string.find(message, "(%a+)%s(%d)")
 	if self.debug then
 		self:Print("received",msgtype,"from",sender,"with value",data)
 	end
+
 	-- switch based on msgtype
 	if 'STATUS' == msgtype then
 		local senderready = true
 		if '0' == data then
 			senderready = false
 		end
-		if nil ~= self.members[sender] then
-			local oldready = self.members[sender].ready
-			local oldcritical = self.members[sender].critical
-			self.members[sender] = {
-				state = RRL.STATE_OK,
-				ready = senderready,
+        
+        local count_changed = false
+        
+        -- is this someone we've never seen before?
+        if nil == self.roster[sender] then
+            self.state.count.other.new = self.state.count.other.new + 1
+            self.state.count.total.ready = self.state.count.total.ready + 1
+            self.state.count.total.all = self.state.count.total.all + 1
+            self.roster[name] = {
+                state = RRL.STATE_NEW,
+				ready = true,
 				last = time(),
-				critical = oldcritical,
-			}
-			if oldready ~= senderready then
-				self:UpdateCounts()
-			end
-		else
-			if self.debug then
-				self:Print("received msg from unknown member",sender)
-			end
-		end
+            }
+        else
+            -- existing member, check for state change
+            if self.roster[sender].state ~= self.STATE_OK or
+               self.roster[sender].ready ~= senderready
+            then
+                self:StateChange(self.roster[sender], self.STATE_OK, senderready)
+            end
+        end       
 	elseif 'PING' == msgtype then
-		self:SendStatus(sender)
+		self:SendStatus()
 		if self.debug then
 			self:Print("responded to ping from",sender)
 		end
 	else
 		self:Print("ERROR: received unknown addon message type '"..msgtype.."' from", sender)
 	end
+
 end
 
--- send out our status
-function RRL:SendStatus(member)
+-- send out our status to the raid
+function RRL:SendStatus()
 	-- construct the message and send it
-	local message = 'STATUS '
-	if false == self.selfready then
-		message = message .. '0'
-	else
-		message = message .. '1'
-	end
-	if nil == member then
-		self:SendCommMessage("RRL1", message, "RAID")
-	else
-		self:SendCommMessage("RRL1", message, "WHISPER", dest)
-	end
+	local message = 'STATUS ' .. tostring(self.state.ready.self)
+	self:SendCommMessage("RRL1", message, "RAID")
 	if self.debug then
 		self:Print("sent update message",message)
 	end
 end
 
--- send a ping message to a member if they are in unknown state
-function RRL:PingMember(member)
-	-- make sure they're online
-	if nil == UnitIsConnected(member) then
-		self.members[member] = {
-			state = RRL.STATE_OFFLINE,
-			ready = false,
-			last = time(),
-		}
-		if self.debug then
-			self:Print("marked",member,"offline")
-		end
-	else
-		self:SendCommMessage("RRL1", "PING 0", "WHISPER", member)
-		self.members[member] = {
-			state = RRL.STATE_PINGED,
-			last = time(),
-			ready = true,
-		}
-		if self.debug then
-			self:Print("sent ping to",member)
-		end
-	end
-end
-
-function RRL:MarkNoAddon(member)
-	self.members[member] = {
-		state = RRL.STATE_NORRL,
-		last = time(),
-		ready = true,
-	}
-	if self.debug then
-		self:Print("marked",member," as not having the addon")
-	end
-end
-
-function RRL:MarkNew(member)
-	self.members[member] = {
-		state = RRL.STATE_NEW,
-		last = time(),
-		ready = true,
-	}
-	if self.debug then
-		self:Print("marked",member," as new")
-	end
-end
-
--- update the roster
-function RRL:UpdateRoster()
-	-- if we were somehow called when not in a raid, skip out
-	if not self.inraid then return end
-	
-	local newmembers = {}
+-- build our internal roster
+function RRL:BuildRoster()
+    self.roster = {}
 	for i = 1, 40, 1
 	do
 		local name, rank, subgroup, level, class, fileName,
 			zone, online, isDead, role, isML = GetRaidRosterInfo(i)
 		if name then
-			if not online then
-				newmembers[name] = {
-					state = RRL.STATE_OFFLINE,
-					ready = false,
-					last = time(),
-				}
-			else
-				if nil ~= self.members[name] then
-					if self.debug then
-						self:Print("found",name,"in the member list")
-					end
-					newmembers[name] = self.members[name]
-				else
-					if self.debug then
-						self:Print("did not find",name,"in the member list")
-					end
-					newmembers[name] = {
-						state = RRL.STATE_NEW,
-						ready = true,
-						last = time(),
-					}
-				end
-			end
+            self.state.count.other.new = self.state.count.other.new + 1
+            self.state.count.total.ready = self.state.count.total.ready + 1
+            self.state.count.total.all = self.state.count.total.all + 1
+            self.roster[name] = {
+                state = RRL.STATE_NEW,
+				ready = true,
+				last = time(),
+			}
 		end
 	end
-	-- swap the tables
-	self.members = newmembers
-	-- re-schedule ourselves in one interval's time
-	self:ScheduleTimer('UpdateRoster', self.db.updateinterval)
-	if self.debug then
-		self:Print("updating counts after updating roster")
-	end
-	self:UpdateCounts()
+    self:CalcRaidReady()
+end
+
+-- maintain our internal roster
+function RRL:MaintRoster()
+
+    -- if our total doesn't match the GetNumRaidMembers, something has
+    -- gone wrong.  force a roster re-scan
+    if GetNumRaidMembers() ~= self.state.count.total.all then
+        self:Print(c:Red('ERROR:'), 'raid size count mismatch, re-scanning roster')
+        self:BuildRoster()
+        return
+    end
+
+    -- calculate our cutoff times
+    local now = time()
+    local five_ago = now - 5 * self.db.updateinterval
+	local three_ago = now - 3 * self.db.updateinterval
+	local two_ago = now - 2 * self.db.updateinterval
+    
+    local isoffline
+    local count_changed = false
+
+    for k,v in pairs(self.roster)
+    do
+        isoffline = not UnitIsConnected(k)
+        
+        if self.STATE_OK == v.state or self.STATE_NEW then
+            -- ping ok with a heartbeat before three_ago
+            if v.last < three_ago then
+                if isoffline then
+                    self:StateChange(v, self.STATE_OFFLINE)
+                else
+                    self:StateChange(v, self.STATE_PINGED)
+                    self:SendCommMessage('RRL1', 'PING 0', 'WHISPER', k)
+                end
+                count_changed = true
+            end
+        elseif RRL.STATE_PINGED == v.state then
+            -- mark as STATE_NORRL pinged with a heartbeat before two_ago
+            if v.last < two_ago then
+                if isoffline then
+                    self:StateChange(v, self.STATE_OFFLINE)
+                else
+                    self:StateChange(v, self.STATE_NORRL)
+                end
+                count_changed = true
+            end
+        elseif RRL.STATE_NORRL == v.state then
+            -- check if NORRL is afk
+            if offline then
+                self:StateChange(v, self.STATE_OFFLINE)
+                count_changed = true
+            else
+                if v.last < five_ago then
+                    if not UnitInRaid(k) then
+                        self.roster[k] = nil
+                        self.state.count.other.norrl = self.state.count.other.norrl - 1
+                        self.state.count.total.all = self.state.count.total.all - 1
+                        self.state.count.total.ready = self.state.count.total.ready - 1
+                        count_changed = true
+                    end
+                end
+                if UnitIsAFK(k) then
+                    self:StateChange(v, self.STATE_AFK)
+                    count_changed = true
+                end
+            end
+        elseif RRL.STATE_OFFLINE == v.state then
+            -- check if OFFLINE is still offline
+            if not isoffline then
+                self:StateChange(v, self.STATE_NEW)
+                count_changed = true
+            end
+        elseif RRL.STATE_AFK == v.state then
+            -- check if afk is still afk
+            if isoffline then
+                self:StateChange(v, self.STATE_OFFLINE)
+                count_changed = true
+            else
+                if not UnitIsAFK(k) then
+                    self:StateChange(v, self.STATE_NEW)
+                    count_changed = true
+                end
+            end
+        else
+            self:Print(c:Red('ERROR: ') ..'unexpected state',v.state,'for',k)
+        end
+    end
+    
+    -- if anything changed, determine if the raid is ready
+    if count_changed then
+        self:CalcRaidReady()
+    end
+    
+end
+
+-- check our roster, make sure that we don't still have someone who has left
+-- the raid
+function RRL:CheckRoster()
+    for k,v in pairs(self.roster)
+    do
+        if not UnitInRaid(k) then
+            self:StateChange(v, nil)
+        end
+    end
 end
 
 -- dump the member list
 function RRL:Dump()
 	self:Print("dumping state table at",time())
-	for k,v in pairs(self.members)
+	for k,v in pairs(self.roster)
 	do
 		self:Print("member",k)
 		self:Print("   state",v.state)
@@ -341,130 +366,41 @@ function RRL:Dump()
 	end
 end
 
--- update the ready counts
-function RRL:UpdateCounts()
-
-	-- reset counts
-	self.count = {
-		rrl_ready = 0,
-		rrl_notready = 0,
-		rrl_notready_crit = 0,
-		afk_notready = 0,
-		offline = 0,
-		new = 0,
-		pinged = 0,
-		norrl = 0,
-		total = 0,
-		meta_ready = 0,
-		meta_notready = 0,
-		max_notready = 0,
-	}
-	
-	-- calc heartbeat cutoff
-	cutoff_3 = time() - 3 * self.db.updateinterval
-	cutoff_2 = time() - 2 * self.db.updateinterval
-	
-	-- iterate over members to build counts
-	for k,v in pairs(self.members)
-	do
-	    self.count.total = self.count.total + 1
-		if RRL.STATE_OK == v.state then
-			-- check for recent status
-			if v.last < cutoff_3 then
-				self:PingMember(k)
-				self.count.pinged = self.count.pinged + 1
-				if self.debug then
-					self:Print("old heartbeat for",k,"- pinging")
-				end
-			else
-				if true == v.ready then
-					self.count.rrl_ready = self.count.rrl_ready + 1
-				else
-					self.count.rrl_notready = self.count.rrl_notready + 1
-					self.members[k].critical = false
-					if self.db.critical[k] then
-						self.count.rrl_notready_crit = self.count.rrl_notready_crit + 1
-						self.members[k].critical = true
-					end
-				end
-			end
-		elseif RRL.STATE_NEW == v.state then
-			if v.last < cutoff_3 then
-				self.count.pinged = self.count.pinged + 1
-				self:PingMember(k)
-			else
-				self.count.new = self.count.new + 1
-			end
-		elseif RRL.STATE_PINGED == v.state then
-			if v.last < cutoff_3 then
-				self.count.norrl = self.count.norrl + 1
-				self:MarkNoAddon(k)
-			else
-				self.count.pinged = self.count.pinged + 1
-			end
-		elseif RRL.STATE_OFFLINE == v.state then
-			if nil == UnitIsConnected(k) then
-				self.count.offline = self.count.offline + 1
-			else
-				self.count.new = self.count.new + 1
-				self:MarkNew(k)
-			end
-		elseif RRL.STATE_NORRL == v.state then
-			if UnitIsAFK(k) then
-				self.members[k].ready = false
-				self.count.afk_notready = self.count.afk_notready + 1
-			else
-				self.members[k].ready = true
-				self.count.norrl = self.count.norrl + 1
-			end
-		end
-	end
-	
-	-- calc meta counts
-	self.count.meta_ready = self.count.rrl_ready + self.count.new + self.count.pinged + self.count.norrl
-	self.count.meta_notready = self.count.rrl_notready + self.count.afk_notready + self.count.offline
-	local instancetype = GetCurrentDungeonDifficulty()
-	self.count.max_notready = self.db.maxnotready[instancetype]
-
-	-- determine if the raid is ready
-	self.raidready = true
-	if self.count.rrl_notready_crit > 0 then
-		self.raidready = false
-		if self.debug then
-			self:Print("raid not ready because 1 or more critical members are not ready")
-		end
-	else
-		if self.count.meta_notready > self.count.max_notready then
-			self.raidready = false
-			if self.debug then
-				self:Print("raid not ready because more than",self.count.max_notready,"members are not ready")
-			end
-		else
-			if self.debug then
-				self:Print("raid is ready")
-			end
-		end
-	end
-    --- XXX send update ready event
-	self:UpdateLDBText()
+-- dump the counts
+function RRL:DumpCounts()
+	self:Print("dumping counts at",time())
+    self:Print("rrl.ready", self.state.count.rrl.ready)
+    self:Print("rrl.notready", self.state.count.rrl.notready)
+    self:Print("rrl.crit_notready", self.state.count.rrl.crit_notready)
+    self:Print("other.offline", self.state.count.other.offline)
+    self:Print("other.new", self.state.count.other.new)
+    self:Print("other.pinged", self.state.count.other.pinged)
+    self:Print("other.noaddon", self.state.count.other.noaddon)
+    self:Print("other.afk", self.state.count.other.afk)
+    self:Print("total.all", self.state.count.total.all)
+    self:Print("total.ready", self.state.count.total.ready)
+    self:Print("total.notready", self.state.count.total.notready)
 end
 
 -- check if we've died
 function RRL:PLAYER_DEAD()
 	if( UnitIsDeadOrGhost("player") ) then
-		if self.selfready then
+		if 1 == self.state.ready.self then
 			self:ToggleReady(false)
 			self:Print("you died; marking you as", c:Red("NOT READY"))
 		end
 	end
 end
 
--- check if someone has gone AFK on us
+-- check if we've gone AFK
 function RRL:PLAYER_FLAGS_CHANGED(event, member)
+    if self.debug then
+        self:Print("player flags changed for", member)
+    end
 	if UnitIsUnit(member, "player") then
-		if true == self.selfready and UnitIsAFK("player") then
+		if 1 == self.state.ready.self and UnitIsAFK("player") then
 			self:Print("AFK: setting you", c:Red("NOT READY"))
-			self.selfready = false
+			self.state.ready.self = 0
             -- XXX send update ready event
 			self:UpdateLDBText()
 			if self.debug then
@@ -475,11 +411,11 @@ function RRL:PLAYER_FLAGS_CHANGED(event, member)
 	end
 end
 
--- toggle ready state
+-- toggle our ready state
 function RRL:ToggleReady(toconsole)
-    self.selfready = not self.selfready
+    self.state.ready.self = abs(self.state.ready.self-1)
 	if toconsole or self.debug then
-		if self.selfready then
+		if 1 == self.state.ready.self then
 			self:Print("setting your state to", c:Green("READY"))
 		else
 			self:Print("setting your state to", c:Red("NOT READY"))
@@ -492,12 +428,12 @@ end
 
 -- respond to a ready check for the user
 function RRL:READY_CHECK()
-	if true == self.selfready then
+	if 1 == self.state.ready.self then
 		ConfirmReadyCheck(true)
 		self:Print("responded", c:Green('READY'), "to a ready check for you")
 	else
-		self:Print("responded", c:Red('NOT READY'), "to a ready check for you")
 		ConfirmReadyCheck(false)
+        self:Print("responded", c:Red('NOT READY'), "to a ready check for you")
 	end
 end
 

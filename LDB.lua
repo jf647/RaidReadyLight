@@ -18,12 +18,12 @@ RRL.ldb_obj = LibStub("LibDataBroker-1.1"):NewDataObject("RRL", {
 
 -- onclick handler
 function RRL.ldb_obj.OnClick(_, which)
-	if "LeftButton" == which and true == RRL.inraid then
+	if "LeftButton" == which and 1 == RRL.state.inraid then
 		RRL:ToggleReady(false)
 	elseif "RightButton" == which then
 		if IsControlKeyDown() then
 			InterfaceOptionsFrame_OpenToCategory(RRL.optionsFrames.rrl)
-		elseif true == RRL.inraid then
+		elseif 1 == RRL.state.inraid then
 			DoReadyCheck()
 		end
 	end
@@ -38,35 +38,36 @@ function RRL.ldb_obj.OnTooltipShow(tip)
 	tip:ClearLines()
 	tip:AddLine(c:White("RRL: Raid Ready Light"))
 	tip:AddLine(" ")
-	if false == RRL.inraid then
+	if 0 == RRL.state.inraid then
 		tip:AddLine(c:White("Only active when in a raid"))
 	else
 		if true == RRL.db.exttooltip then
-			if true == RRL.raidready then
+			if 1 == RRL.state.ready.raid then
 				tip:AddDoubleLine(c:White("Raid"), c:Green("READY"))
 			else
 				tip:AddDoubleLine(c:White("Raid"), c:Red("NOT READY"))
 			end
-			if true == RRL.selfready then
+			if 1 == RRL.state.ready.self then
 				tip:AddDoubleLine(c:White("You"), c:Green("READY"))
 			else
 				tip:AddDoubleLine(c:White("You"), c:Red("NOT READY"))
 			end
 			tip:AddDoubleLine(
 				c:White("Ready"),
-				c:Colorize(c:GetThresholdHexColor(RRL.count.rrl_ready,RRL.count.total), RRL.count.rrl_ready)
-				.. "/"..c:Green(RRL.count.total)
+				c:Colorize(c:GetThresholdHexColor(RRL.state.count.rrl.ready,RRL.state.count.total.all), RRL.state.count.rrl.ready)
+				.. "/"..c:Green(RRL.state.count.total.all)
 			)
-			tip:AddDoubleLine(c:White("Not Ready"), c:Red(RRL.count.rrl_notready))
-			tip:AddDoubleLine(c:White("Max Not Ready"), c:Yellow(RRL.count.max_notready))
-			tip:AddDoubleLine(c:White("Critical"), c:Red(RRL.count.rrl_notready_crit))
-			tip:AddDoubleLine(c:White("Offline"), c:Yellow(RRL.count.offline))
-			tip:AddDoubleLine(c:White("New"), c:Yellow(RRL.count.new))
-			tip:AddDoubleLine(c:White("Pinged"), c:Yellow(RRL.count.pinged))
-			tip:AddDoubleLine(c:White("No Addon"), c:Yellow(RRL.count.norrl))
+			tip:AddDoubleLine(c:White("Not Ready"), c:Red(RRL.state.count.rrl.notready))
+			tip:AddDoubleLine(c:White("Max Not Ready"), c:Yellow(RRL.state.max_notready))
+			tip:AddDoubleLine(c:White("Critical"), c:Red(RRL.state.count.rrl.crit_notready))
+			tip:AddDoubleLine(c:White("Offline"), c:Yellow(RRL.state.count.other.offline))
+			tip:AddDoubleLine(c:White("New"), c:Yellow(RRL.state.count.other.new))
+			tip:AddDoubleLine(c:White("Pinged"), c:Yellow(RRL.state.count.other.pinged))
+			tip:AddDoubleLine(c:White("No Addon"), c:Yellow(RRL.state.count.other.noaddon))
+            tip:AddDoubleLine(c:White("AFK"), c:Yellow(RRL.state.count.other.afk))
 			tip:AddLine(" ")
 		end
-		for k,v in pairs(RRL.members)
+		for k,v in pairs(RRL.roster)
 		do
 			if RRL.STATE_OK == v.state then
 				if false == v.ready then
@@ -88,7 +89,9 @@ function RRL.ldb_obj.OnTooltipShow(tip)
 				else
 					tip:AddDoubleLine(c:White(k), c:Yellow('No Addon'))
 				end
-			end
+			elseif RRL.STATE_AFK == v.state then
+                tip:AddDoubleLine(c:White(k), c:Red('AFK'))
+            end
 		end
 	end
 	tip:AddLine(" ")
@@ -100,29 +103,35 @@ end
 
 -- update the LDB text
 function RRL:UpdateLDBText()
-	-- build the LDB text
-	local youstring
-	local raidstring
-	local countstring
-	if true == self.selfready then
-		youstring = c:Green("YOU")
-	else
-		youstring = c:Red("YOU")
-	end
-	if true == self.raidready then
-		self.ldb_obj.status = true
-		self.ldb_obj.icon = "Interface\\RAIDFRAME\\ReadyCheck-Ready.png"
-		raidstring = c:Green("RAID")
-	else
-		self.ldb_obj.status = false
-		self.ldb_obj.icon = "Interface\\RAIDFRAME\\ReadyCheck-NotReady.png"
-		raidstring = c:Red("RAID")
-	end
-	countstring = self.count.meta_ready.."/"..self.count.total
-	if self.count.rrl_notready_crit > 0 then
-		countstring = countstring .. "*"
-	end
-	self.ldb_obj.text = youstring .. "/" .. raidstring .. " " .. c:White(countstring)
+    if self.state.inraid then
+        -- build the LDB text
+        local youstring
+        local raidstring
+        local countstring
+        if 1 == self.state.ready.self then
+            youstring = c:Green("YOU")
+        else
+            youstring = c:Red("YOU")
+        end
+        if 1 == self.state.ready.raid then
+            self.ldb_obj.status = true
+            self.ldb_obj.icon = "Interface\\RAIDFRAME\\ReadyCheck-Ready.png"
+            raidstring = c:Green("RAID")
+        else
+            self.ldb_obj.status = false
+            self.ldb_obj.icon = "Interface\\RAIDFRAME\\ReadyCheck-NotReady.png"
+            raidstring = c:Red("RAID")
+        end
+        countstring = self.state.count.total.ready.."/"..self.state.count.total.all
+        if self.state.count.rrl.crit_notready > 0 then
+            countstring = countstring .. "*"
+        end
+        self.ldb_obj.text = youstring .. "/" .. raidstring .. " " .. c:White(countstring)
+    else
+      	self.ldb_obj.text = "Not Active"
+        self.ldb_obj.icon = "Interface\\RAIDFRAME\\ReadyCheck-Ready.png"
+    end
 end
+
 --
 -- EOF
