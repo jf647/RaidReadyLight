@@ -87,6 +87,12 @@ function RRL:StateChange(member, newstate, isready, name)
                 self.state.count.total.ready = self.state.count.total.ready - 1
                 self.state.count.total.notready = self.state.count.total.notready + 1
             end
+        elseif self.STATE_AFK == newstate then
+            member.ready = false
+            self.state.count.total.ready = self.state.count.total.ready - 1
+            self.state.count.total.notready = self.state.count.total.notready + 1
+            self.state.count.other.new = self.state.count.other.new - 1
+            self.state.count.other.afk = self.state.count.other.afk + 1
         elseif nil == newstate then
             self.roster[k] = nil
             self.state.count.other.new = self.state.count.other.new - 1
@@ -116,6 +122,12 @@ function RRL:StateChange(member, newstate, isready, name)
                 self.state.count.total.ready = self.state.count.total.ready - 1
                 self.state.count.total.notready = self.state.count.total.notready + 1
             end
+        elseif self.STATE_AFK == newstate then
+            member.ready = false
+            self.state.count.total.ready = self.state.count.total.ready - 1
+            self.state.count.total.notready = self.state.count.total.notready + 1
+            self.state.count.other.pinged = self.state.count.other.pinged - 1
+            self.state.count.other.afk = self.state.count.other.afk + 1
         elseif nil == newstate then
             self.roster[k] = nil
             self.state.count.other.pinged = self.state.count.other.pinged - 1
@@ -185,10 +197,12 @@ function RRL:StateChange(member, newstate, isready, name)
             member.ready = false
             self.state.count.other.afk = self.state.count.other.afk - 1
             self.state.count.other.offline = self.state.count.other.offline + 1
-        elseif self.STATE_NEW == newstate then
+        elseif self.STATE_NORRL == newstate then
             member.ready = true
             self.state.count.other.afk = self.state.count.other.afk - 1
-            self.state.count.other.new = self.state.count.other.new + 1
+            self.state.count.other.noaddon = self.state.count.other.noaddon + 1
+            self.state.count.total.ready = self.state.count.total.ready + 1
+            self.state.count.total.notready = self.state.count.total.notready - 1
         elseif self.STATE_OK == newstate then
             member.ready = isready
             self.state.count.other.afk = self.state.count.other.afk - 1
@@ -277,6 +291,7 @@ function RRL:CalcRaidReady()
     
 	-- update our LDB text
     self:UpdateLDBText()
+    if self.minion then self:UpdateMinion() end
     
 end
 

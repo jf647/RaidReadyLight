@@ -38,6 +38,7 @@ RRL.options = {
 					order = 110,
 				},
 			},
+            order = 200,
         },
         critical = {
 		    name = 'Critical Members',
@@ -73,6 +74,7 @@ RRL.options = {
 					order = 210,
                 },
             },
+            order = 300,
         },
         interval = {
             type = 'range',
@@ -93,9 +95,9 @@ RRL.options = {
 			desc = 'auto-respond to ready checks',
 			get  = function(info) return RRL.db.readycheck_respond end,
 			set  = 'ToggleReadyCheck',
-			order = 120,
+			order = 110,
 		},
-        debug = LibStub('LibDebugLog-1.0'):GetAce3OptionTable(self, 130),
+        debug = LibStub('LibDebugLog-1.0'):GetAce3OptionTable(self, 100),
         dump = {
             type = 'execute',
             name = 'Dump State',
@@ -109,7 +111,31 @@ RRL.options = {
 			desc = 'toggle the extended tooltip on/off',
 			get  = function(info) return RRL.db.exttooltip end,
 			set  = function(info) RRL.db.exttooltip = not RRL.db.exttooltip end,
-			order = 110,
+			order = 130,
+		},
+		minion = {
+			type = 'toggle',
+			name = 'Minion',
+			desc = 'toggle the RRL minion on/off',
+			get  = function(info) return RRL.db.minion end,
+			set  = function(info) RRL.db.minion = not RRL.db.minion end,
+			order = 120,
+		},
+		minionscale = {
+			type = 'range',
+			name = 'Minion Scale',
+			desc = 'set the scale of the minion frame',
+			min  = 0.5,
+			max  = 2,
+			step = 0.1,
+            set  = function(info,scale)
+                RRL.db.minionscale = scale
+                if RRL.minion then
+                    RRL.minion:SetScale(scale)
+                end
+            end,
+            get  = function(info) return RRL.db.minionscale end,
+			order = 121,
 		},
     },
 }
@@ -122,6 +148,10 @@ RRL.defaults = {
 		readycheck_respond = 1,
 		critical = {},
 		exttooltip = false,
+        minion = true,
+        minionscale = 1.0,
+        statusframex = -100,
+        statusframey = 0,
 	},
 }
 

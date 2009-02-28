@@ -11,13 +11,12 @@ TODO
 
 - consider adding a mana check to go auto-not-ready (and auto-ready when you go back up)
 
-- add a proper traffic light graphical frame (toggleable on/off)
+- minion stuff
+           
+  - mouseover shows details like tooltip
+  
+  - appears/dissapears if minion is enabled or disabled at runtime instead of startup
 
-  - states: you ready, raid ready = green
-            you ready, raid not = red
-            you not ready, raid ready = yellow
-            you not ready, raid not ready = red
-            
-  - mouseover shows ready state
+- change statechange.lua's wall-o-case into a matrix that defines what changes for each transition
 
-- use the same event to drive changes to the traffic light frame
+- 

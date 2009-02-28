@@ -136,6 +136,10 @@ function RRL:JoinRaid()
 		end
 		self:UnregisterEvent("READY_CHECK")
 	end
+    -- create our traffic light frame if enabled
+    if self.db.minion then
+        self:CreateMinion()
+    end
 end
 
 -- stop doing what we do in a raid
@@ -155,6 +159,11 @@ function RRL:LeaveRaid()
 	self:UnregisterEvent("PLAYER_DEAD")
 	-- reset LDB object to out of raid status
     self:UpdateLDBText()
+    if self.minion then self:UpdateMinion() end
+    -- destroy our minion if it exists
+    if RRL.minion then
+        self:DestroyMinion()
+    end
 end
 
 -- process a received addon message
@@ -275,7 +284,7 @@ function RRL:MaintRoster()
     do
         isoffline = not UnitIsConnected(k)
         
-        if self.STATE_OK == v.state or self.STATE_NEW == v.state then
+        if self.STATE_OK == v.state then
             -- ping ok with a heartbeat before three_ago
             if v.last < three_ago then
                 self:Debug(k,"heartbeat more than three intervals ago")
@@ -288,6 +297,24 @@ function RRL:MaintRoster()
                 end
                 count_changed = true
             end
+        elseif self.STATE_NEW == v.state then
+            -- ping new with a heartbeat before three_ago
+            if v.last < three_ago then
+                self:Debug(k,"heartbeat more than three intervals ago")
+                if isoffline then
+                    self:StateChange(v, self.STATE_OFFLINE)
+                else
+                    self:StateChange(v, self.STATE_PINGED)
+                    self:SendCommMessage('RRL1', 'PING 0', 'WHISPER', k)
+                    self:Debug("pinged",k)
+                end
+                count_changed = true
+            else
+                if UnitIsAFK(k) then
+                    self:StateChange(v, self.STATE_AFK)
+                    count_changed = true
+                end
+            end
         elseif RRL.STATE_PINGED == v.state then
             -- mark as STATE_NORRL pinged with a heartbeat before two_ago
             if v.last < two_ago then
@@ -298,6 +325,11 @@ function RRL:MaintRoster()
                     self:StateChange(v, self.STATE_NORRL)
                 end
                 count_changed = true
+            else
+                if UnitIsAFK(k) then
+                    self:StateChange(v, self.STATE_AFK)
+                    count_changed = true
+                end
             end
         elseif RRL.STATE_NORRL == v.state then
             -- check if NORRL is afk
@@ -330,7 +362,7 @@ function RRL:MaintRoster()
                 count_changed = true
             else
                 if not UnitIsAFK(k) then
-                    self:StateChange(v, self.STATE_NEW)
+                    self:StateChange(v, self.STATE_NORRL)
                     count_changed = true
                 end
             end
@@ -411,6 +443,7 @@ function RRL:ToggleReady()
     self:Debug("toggling ready state")
     self.state.ready.self = abs(self.state.ready.self-1)
 	self:UpdateLDBText()
+    if self.minion then self:UpdateMinion() end
 	self:SendStatus()
 end
 

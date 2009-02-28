@@ -54,10 +54,10 @@ function RRL.ldb_obj.OnTooltipShow(tip)
 			end
             tip:AddDoubleLine(c:White("Raid Size:"), c:Green(RRL.state.count.total.all))
 			tip:AddDoubleLine(
-				c:White("Ready"),
+				c:White("RRL Ready"),
 				c:Colorize(c:GetThresholdHexColor(RRL.state.count.rrl.ready,RRL.state.count.total.all), RRL.state.count.rrl.ready)
 			)
-			tip:AddDoubleLine(c:White("Not Ready"), c:Red(RRL.state.count.rrl.notready))
+			tip:AddDoubleLine(c:White("RRL Not Ready"), c:Red(RRL.state.count.rrl.notready))
 			tip:AddDoubleLine(c:White("Max Not Ready"), c:Yellow(RRL.state.maxnotready))
 			tip:AddDoubleLine(c:White("Critical"), c:Red(RRL.state.count.rrl.crit_notready))
 			tip:AddDoubleLine(c:White("Offline"), c:Yellow(RRL.state.count.other.offline))
@@ -103,7 +103,7 @@ end
 
 -- update the LDB text
 function RRL:UpdateLDBText()
-    if self.state.inraid then
+    if 1 == self.state.inraid then
         -- build the LDB text
         local youstring
         local raidstring
@@ -128,6 +128,7 @@ function RRL:UpdateLDBText()
         end
         self.ldb_obj.text = youstring .. "/" .. raidstring .. " " .. c:White(countstring)
     else
+        self:Debug("updating LDB to show not active")
       	self.ldb_obj.text = "Not Active"
         self.ldb_obj.icon = "Interface\\RAIDFRAME\\ReadyCheck-Ready.png"
     end
