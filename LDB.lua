@@ -19,7 +19,7 @@ RRL.ldb_obj = LibStub("LibDataBroker-1.1"):NewDataObject("RRL", {
 -- onclick handler
 function RRL.ldb_obj.OnClick(_, which)
 	if "LeftButton" == which and 1 == RRL.state.inraid then
-		RRL:ToggleReady(false)
+		RRL:ToggleReady()
 	elseif "RightButton" == which then
 		if IsControlKeyDown() then
 			InterfaceOptionsFrame_OpenToCategory(RRL.optionsFrames.rrl)
@@ -52,13 +52,13 @@ function RRL.ldb_obj.OnTooltipShow(tip)
 			else
 				tip:AddDoubleLine(c:White("You"), c:Red("NOT READY"))
 			end
+            tip:AddDoubleLine(c:White("Raid Size:"), c:Green(RRL.state.count.total.all))
 			tip:AddDoubleLine(
 				c:White("Ready"),
 				c:Colorize(c:GetThresholdHexColor(RRL.state.count.rrl.ready,RRL.state.count.total.all), RRL.state.count.rrl.ready)
-				.. "/"..c:Green(RRL.state.count.total.all)
 			)
 			tip:AddDoubleLine(c:White("Not Ready"), c:Red(RRL.state.count.rrl.notready))
-			tip:AddDoubleLine(c:White("Max Not Ready"), c:Yellow(RRL.state.max_notready))
+			tip:AddDoubleLine(c:White("Max Not Ready"), c:Yellow(RRL.state.maxnotready))
 			tip:AddDoubleLine(c:White("Critical"), c:Red(RRL.state.count.rrl.crit_notready))
 			tip:AddDoubleLine(c:White("Offline"), c:Yellow(RRL.state.count.other.offline))
 			tip:AddDoubleLine(c:White("New"), c:Yellow(RRL.state.count.other.new))

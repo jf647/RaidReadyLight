@@ -95,18 +95,11 @@ RRL.options = {
 			set  = 'ToggleReadyCheck',
 			order = 120,
 		},
-		debug = {
-			type = 'toggle',
-			name = 'Debug',
-			desc = 'enable/disable debug messages',
-			get  = function(info) return RRL.debug end,
-			set  = function(info) RRL.debug = not RRL.debug end,
-			order = 130,
-		},
-        d = {
+        debug = LibStub('LibDebugLog-1.0'):GetAce3OptionTable(self, 130),
+        dump = {
             type = 'execute',
             name = 'Dump State',
-            desc = 'dump the member state table',
+            desc = 'dump the member state and counts',
 			func = 'Dump',
 			guiHidden = true,
         },

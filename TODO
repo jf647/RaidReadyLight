@@ -5,16 +5,7 @@ TODO
 
 - get acedboptions working again
 
-- clean up gui
-
-- remove debug code
-
-- consider passing raid parameters like updateinterval from the raid leader via aceserializer
-
-  - avoids problem where someone with a low update interval will constantly consider someone with
-    an interval > 3 times theirs to be stale and in need of a ping
-    
-  - for now, just disable the option to change the update interval (during beta)
+- clean up gui (critical members should be a listbox with buttons to delete or clear, field to add
 
 - figure out why "everyone is ready" is displayed twice on ready check
 
