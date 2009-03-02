@@ -383,12 +383,29 @@ end
 -- check our roster, make sure that we don't still have someone who has left
 -- the raid
 function RRL:CheckRoster()
+
+    -- has someone left?
     for k,v in pairs(self.roster)
     do
         if not UnitInRaid(k) then
             self:StateChange(v, nil)
         end
     end
+    
+    -- has someone joined?
+	for i = 1, 40, 1
+	do
+		local name, rank, subgroup, level, class, fileName,
+			zone, online, isDead, role, isML = GetRaidRosterInfo(i)
+		if name then
+            if online then
+                self:StateChange(nil, self.STATE_NEW, nil, name)
+            else
+                self:StateChange(nil, self.STATE_OFFLINE, nil, name)
+            end
+		end
+	end
+
 end
 
 -- dump the member list

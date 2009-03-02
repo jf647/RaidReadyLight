@@ -3,18 +3,19 @@ TODO
 
 - replace static text with locales
 
-- get acedboptions working again
+  - use wowace's localization web site?  Can we do that if it's not in their SVN?
+
+- get acedboptions working
 
 - clean up gui (critical members should be a listbox with buttons to delete or clear, field to add
 
 - figure out why "everyone is ready" is displayed twice on ready check
 
 - consider adding a mana check to go auto-not-ready (and auto-ready when you go back up)
-
-- minion stuff
-           
-  - mouseover shows details like tooltip
-  
+ 
 - change statechange.lua's wall-o-case into a matrix that defines what changes for each transition
 
 - get a better graphic.  done by someone who doesn't SUCK AT ART
+
+- find out why raid roster size trigger seems to be firing before we get a chance to see the roster
+  update event (maybe fixed, needs testing)
