@@ -120,7 +120,7 @@ function RRL:JoinRaid()
 	-- register to receive addon messages
     self:RegisterComm("RRL1")
     -- start firing our maint roster event every interval
-    self:ScheduleRepeatingTimer('MaintRoster', self.db.updateinterval)
+    self.maint_timer = self:ScheduleRepeatingTimer('MaintRoster', self.db.updateinterval)
 	-- send a status msg, then start firing them on a timer
 	self:SendStatus()
     self.send_timer = self:ScheduleRepeatingTimer('SendStatus', self.db.updateinterval)

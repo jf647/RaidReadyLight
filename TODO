@@ -15,8 +15,6 @@ TODO
            
   - mouseover shows details like tooltip
   
-  - appears/dissapears if minion is enabled or disabled at runtime instead of startup
-
 - change statechange.lua's wall-o-case into a matrix that defines what changes for each transition
 
 - get a better graphic.  done by someone who doesn't SUCK AT ART

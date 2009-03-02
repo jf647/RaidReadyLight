@@ -15,6 +15,8 @@ RRL.ldb_obj = LibStub("LibDataBroker-1.1"):NewDataObject("RRL", {
 	text  = "Not Active",
 	icon  = "Interface\\RAIDFRAME\\ReadyCheck-Ready.png",
 })
+RRL.ldb_obj:SetScript('OnEnter', RRL.DisplayTooltip)
+RRL.ldb_obj:SetScript('OnLeave', RRL.DestroyTooltip)
 
 -- onclick handler
 function RRL.ldb_obj.OnClick(_, which)
@@ -30,75 +32,12 @@ function RRL.ldb_obj.OnClick(_, which)
 end
 
 -- display the LDB tooltip
-local ldb_tip
-function RRL.ldb_obj.OnTooltipShow(tip)
-	if not ldb_tip then
-		ldb_tip = tip
-	end
-	tip:ClearLines()
-	tip:AddLine(c:White("RRL: Raid Ready Light"))
-	tip:AddLine(" ")
-	if 0 == RRL.state.inraid then
-		tip:AddLine(c:White("Only active when in a raid"))
-	else
-		if true == RRL.db.exttooltip then
-			if 1 == RRL.state.ready.raid then
-				tip:AddDoubleLine(c:White("Raid"), c:Green("READY"))
-			else
-				tip:AddDoubleLine(c:White("Raid"), c:Red("NOT READY"))
-			end
-			if 1 == RRL.state.ready.self then
-				tip:AddDoubleLine(c:White("You"), c:Green("READY"))
-			else
-				tip:AddDoubleLine(c:White("You"), c:Red("NOT READY"))
-			end
-            tip:AddDoubleLine(c:White("Raid Size:"), c:Green(RRL.state.count.total.all))
-			tip:AddDoubleLine(
-				c:White("RRL Ready"),
-				c:Colorize(c:GetThresholdHexColor(RRL.state.count.rrl.ready,RRL.state.count.total.all), RRL.state.count.rrl.ready)
-			)
-			tip:AddDoubleLine(c:White("RRL Not Ready"), c:Red(RRL.state.count.rrl.notready))
-			tip:AddDoubleLine(c:White("Max Not Ready"), c:Yellow(RRL.state.maxnotready))
-			tip:AddDoubleLine(c:White("Critical"), c:Red(RRL.state.count.rrl.crit_notready))
-			tip:AddDoubleLine(c:White("Offline"), c:Yellow(RRL.state.count.other.offline))
-			tip:AddDoubleLine(c:White("New"), c:Yellow(RRL.state.count.other.new))
-			tip:AddDoubleLine(c:White("Pinged"), c:Yellow(RRL.state.count.other.pinged))
-			tip:AddDoubleLine(c:White("No Addon"), c:Yellow(RRL.state.count.other.noaddon))
-            tip:AddDoubleLine(c:White("AFK"), c:Yellow(RRL.state.count.other.afk))
-			tip:AddLine(" ")
-		end
-		for k,v in pairs(RRL.roster)
-		do
-			if RRL.STATE_OK == v.state then
-				if false == v.ready then
-					local critsuffix = ''
-					if true == v.critical then
-						critsuffix = '*'
-					end
-					tip:AddDoubleLine(c:White(k), c:Red('Not Ready'..critsuffix))
-				end
-			elseif RRL.STATE_OFFLINE == v.state then
-				tip:AddDoubleLine(c:White(k), c:Yellow('Offline'))
-			elseif RRL.STATE_PINGED == v.state then
-				tip:AddDoubleLine(c:White(k), c:Yellow('Pinged'))
-			elseif RRL.STATE_NEW == v.state then
-				tip:AddDoubleLine(c:White(k), c:Yellow('New'))
-			elseif RRL.STATE_NORRL == v.state then
-				if false == v.ready then
-					tip:AddDoubleLine(c:White(k), c:Red('Not Ready'))
-				else
-					tip:AddDoubleLine(c:White(k), c:Yellow('No Addon'))
-				end
-			elseif RRL.STATE_AFK == v.state then
-                tip:AddDoubleLine(c:White(k), c:Red('AFK'))
-            end
-		end
-	end
-	tip:AddLine(" ")
-	tip:AddLine(c:White("Left-click to change your status"))
-	tip:AddLine(c:White("Right-click to do a ready check"))
-	tip:AddLine(c:White("Control-Right-click to configure"))
-	tip:Show()
+function RRL.ldb_obj.OnEnter(frame)
+    RRL:DisplayTooltip(frame)
+end
+
+function RRL.ldb_obj.OnLeave(frame)
+    RRL:DestroyTooltip(frame)
 end
 
 -- update the LDB text
