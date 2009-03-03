@@ -25,6 +25,7 @@ function RRL:CreateMinion()
     f:SetScript("OnDragStart", function(frame)
         if IsAltKeyDown() then
             ismoving = true
+            RRL.ldb_obj.OnLeave(frame)
             frame:StartMoving()
         end
     end)
@@ -33,20 +34,12 @@ function RRL:CreateMinion()
             frame:StopMovingOrSizing()
             ismoving = false
             RRL.db.statusframex, RRL.db.statusframey = frame:GetCenter()
+            RRL.ldb_obj.OnEnter(frame)
         end
     end)
-    f:SetScript('OnClick', function(_, which)
-        -- need to point this and the LDB one to the same function if possible
-        if "LeftButton" == which and 1 == RRL.state.inraid then
-            RRL:ToggleReady()
-        elseif "RightButton" == which then
-            if IsControlKeyDown() then
-                InterfaceOptionsFrame_OpenToCategory(RRL.optionsFrames.rrl)
-            elseif 1 == RRL.state.inraid then
-                DoReadyCheck()
-            end
-        end
-    end)
+    f:SetScript("OnClick", RRL.ldb_obj.OnClick)
+    f:SetScript("OnLeave", RRL.ldb_obj.OnLeave)
+    f:SetScript("OnEnter", RRL.ldb_obj.OnEnter)    
     f:RegisterForDrag("LeftButton")
     f:SetMovable(true)
     f:SetClampedToScreen(true)

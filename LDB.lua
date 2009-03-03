@@ -4,6 +4,7 @@
 
 -- external libs
 local c = LibStub("LibCrayon-3.0")
+local LibQTip = LibStub('LibQTip-1.0')
 
 -- locale setup
 --local L = LibStub("AceLocale-3.0"):GetLocale("RRL", true)
@@ -17,7 +18,7 @@ RRL.ldb_obj = LibStub("LibDataBroker-1.1"):NewDataObject("RRL", {
 })
 
 -- onclick handler
-function RRL.ldb_obj.OnClick(_, which)
+function RRL.ldb_obj.OnClick(self, which)
 	if "LeftButton" == which and 1 == RRL.state.inraid then
 		RRL:ToggleReady()
 	elseif "RightButton" == which then
@@ -29,42 +30,39 @@ function RRL.ldb_obj.OnClick(_, which)
 	end
 end
 
--- display the LDB tooltip
-local ldb_tip
-function RRL.ldb_obj.OnTooltipShow(tip)
-	if not ldb_tip then
-		ldb_tip = tip
-	end
-	tip:ClearLines()
-	tip:AddLine(c:White("RRL: Raid Ready Light"))
+-- on entering the LDB or minion frame
+function RRL.ldb_obj.OnEnter(self)
+    local tip = LibQTip:Acquire("RRLTooltip", 2, "LEFT", "RIGHT")
+    self.tooltip = tip
+	tip:AddHeader('RRL: Raid Ready Light')
 	tip:AddLine(" ")
 	if 0 == RRL.state.inraid then
 		tip:AddLine(c:White("Only active when in a raid"))
 	else
 		if true == RRL.db.exttooltip then
 			if 1 == RRL.state.ready.raid then
-				tip:AddDoubleLine(c:White("Raid"), c:Green("READY"))
+				tip:AddLine(c:White("Raid"), c:Green("READY"))
 			else
-				tip:AddDoubleLine(c:White("Raid"), c:Red("NOT READY"))
+				tip:AddLine(c:White("Raid"), c:Red("NOT READY"))
 			end
 			if 1 == RRL.state.ready.self then
-				tip:AddDoubleLine(c:White("You"), c:Green("READY"))
+				tip:AddLine(c:White("You"), c:Green("READY"))
 			else
-				tip:AddDoubleLine(c:White("You"), c:Red("NOT READY"))
+				tip:AddLine(c:White("You"), c:Red("NOT READY"))
 			end
-            tip:AddDoubleLine(c:White("Raid Size:"), c:Green(RRL.state.count.total.all))
-			tip:AddDoubleLine(
+            tip:AddLine(c:White("Raid Size:"), c:Green(RRL.state.count.total.all))
+			tip:AddLine(
 				c:White("RRL Ready"),
 				c:Colorize(c:GetThresholdHexColor(RRL.state.count.rrl.ready,RRL.state.count.total.all), RRL.state.count.rrl.ready)
 			)
-			tip:AddDoubleLine(c:White("RRL Not Ready"), c:Red(RRL.state.count.rrl.notready))
-			tip:AddDoubleLine(c:White("Max Not Ready"), c:Yellow(RRL.state.maxnotready))
-			tip:AddDoubleLine(c:White("Critical"), c:Red(RRL.state.count.rrl.crit_notready))
-			tip:AddDoubleLine(c:White("Offline"), c:Yellow(RRL.state.count.other.offline))
-			tip:AddDoubleLine(c:White("New"), c:Yellow(RRL.state.count.other.new))
-			tip:AddDoubleLine(c:White("Pinged"), c:Yellow(RRL.state.count.other.pinged))
-			tip:AddDoubleLine(c:White("No Addon"), c:Yellow(RRL.state.count.other.noaddon))
-            tip:AddDoubleLine(c:White("AFK"), c:Yellow(RRL.state.count.other.afk))
+			tip:AddLine(c:White("RRL Not Ready"), c:Red(RRL.state.count.rrl.notready))
+			tip:AddLine(c:White("Max Not Ready"), c:Yellow(RRL.state.maxnotready))
+			tip:AddLine(c:White("Critical"), c:Red(RRL.state.count.rrl.crit_notready))
+			tip:AddLine(c:White("Offline"), c:Yellow(RRL.state.count.other.offline))
+			tip:AddLine(c:White("New"), c:Yellow(RRL.state.count.other.new))
+			tip:AddLine(c:White("Pinged"), c:Yellow(RRL.state.count.other.pinged))
+			tip:AddLine(c:White("No Addon"), c:Yellow(RRL.state.count.other.noaddon))
+            tip:AddLine(c:White("AFK"), c:Yellow(RRL.state.count.other.afk))
 			tip:AddLine(" ")
 		end
 		for k,v in pairs(RRL.roster)
@@ -75,30 +73,39 @@ function RRL.ldb_obj.OnTooltipShow(tip)
 					if true == v.critical then
 						critsuffix = '*'
 					end
-					tip:AddDoubleLine(c:White(k), c:Red('Not Ready'..critsuffix))
+					tip:AddLine(c:White(k), c:Red('Not Ready'..critsuffix))
 				end
 			elseif RRL.STATE_OFFLINE == v.state then
-				tip:AddDoubleLine(c:White(k), c:Yellow('Offline'))
+				tip:AddLine(c:White(k), c:Yellow('Offline'))
 			elseif RRL.STATE_PINGED == v.state then
-				tip:AddDoubleLine(c:White(k), c:Yellow('Pinged'))
+				tip:AddLine(c:White(k), c:Yellow('Pinged'))
 			elseif RRL.STATE_NEW == v.state then
-				tip:AddDoubleLine(c:White(k), c:Yellow('New'))
+				tip:AddLine(c:White(k), c:Yellow('New'))
 			elseif RRL.STATE_NORRL == v.state then
 				if false == v.ready then
-					tip:AddDoubleLine(c:White(k), c:Red('Not Ready'))
+					tip:AddLine(c:White(k), c:Red('Not Ready'))
 				else
-					tip:AddDoubleLine(c:White(k), c:Yellow('No Addon'))
+					tip:AddLine(c:White(k), c:Yellow('No Addon'))
 				end
 			elseif RRL.STATE_AFK == v.state then
-                tip:AddDoubleLine(c:White(k), c:Red('AFK'))
+                tip:AddLine(c:White(k), c:Red('AFK'))
             end
 		end
 	end
 	tip:AddLine(" ")
-	tip:AddLine(c:White("Left-click to change your status"))
-	tip:AddLine(c:White("Right-click to do a ready check"))
-	tip:AddLine(c:White("Control-Right-click to configure"))
+	if 1 == RRL.state.inraid then
+        tip:AddHeader("Left-click to change your status")
+        tip:AddHeader("Right-click to do a ready check")
+    end
+	tip:AddHeader("Control-Right-click to configure")
+    tip:SmartAnchorTo(self)
 	tip:Show()
+end
+
+-- on leaving the LDB object or minion frame
+function RRL.ldb_obj.OnLeave(self)
+    LibQTip:Release(self.tooltip)
+    self.tooltip = nil
 end
 
 -- update the LDB text
