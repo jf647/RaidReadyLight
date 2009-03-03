@@ -22,11 +22,11 @@ function RRL:CreateMinion()
         f:SetPoint('CENTER', -100, 0)
         self.db.statusframex, self.db.statusframey = f:GetCenter()
     end
-    f:SetScript('OnDragStart', RRL.Minion_OnDragStart)
-    f:SetScript('OnDragStop', RRL.Minion_OnDragStop)
+    f:SetScript('OnDragStart', function() RRL.Minion_OnDragStart() end)
+    f:SetScript('OnDragStop', function() RRL.Minion_OnDragStop() end)
     f:SetScript('OnClick', RRL.Minion_OnClick)
-    f:SetScript('OnEnter', RRL.DisplayTooltip)
-    f:SetScript('OnLeave', RRL.DestroyTooltip)
+    f:SetScript('OnEnter', function(frame) self:Debug('frame is',frame) self:Debug('f is',f) RRL.DisplayTooltip(f) end)
+    f:SetScript('OnLeave', function(frame) RRL.DestroyTooltip(f) end)
     f:RegisterForDrag("LeftButton")
     f:SetMovable(true)
     f:SetClampedToScreen(true)
@@ -58,18 +58,18 @@ function RRL:DestroyMinion()
     f = nil
 end
 
-function RRL:Minion_OnDragStart(frame)
+function RRL:Minion_OnDragStart()
     if IsAltKeyDown() then
         ismoving = true
-        frame:StartMoving()
+        f:StartMoving()
     end
 end
 
-function RRL:Minion_OnDragStop(frame)
+function RRL:Minion_OnDragStop()
     if ismoving then
-        frame:StopMovingOrSizing()
+        f:StopMovingOrSizing()
         ismoving = false
-        RRL.db.statusframex, RRL.db.statusframey = frame:GetCenter()
+        RRL.db.statusframex, RRL.db.statusframey = f:GetCenter()
     end
 end
 

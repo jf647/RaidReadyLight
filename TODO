@@ -12,10 +12,7 @@ TODO
 - figure out why "everyone is ready" is displayed twice on ready check
 
 - consider adding a mana check to go auto-not-ready (and auto-ready when you go back up)
- 
+
 - change statechange.lua's wall-o-case into a matrix that defines what changes for each transition
 
-- get a better graphic.  done by someone who doesn't SUCK AT ART
-
 - find out why raid roster size trigger seems to be firing before we get a chance to see the roster
-  update event (maybe fixed, needs testing)

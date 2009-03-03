@@ -15,8 +15,14 @@ RRL.ldb_obj = LibStub("LibDataBroker-1.1"):NewDataObject("RRL", {
 	text  = "Not Active",
 	icon  = "Interface\\RAIDFRAME\\ReadyCheck-Ready.png",
 })
-RRL.ldb_obj:SetScript('OnEnter', RRL.DisplayTooltip)
-RRL.ldb_obj:SetScript('OnLeave', RRL.DestroyTooltip)
+
+-- tooltip display functions
+function RRL.ldb_obj.OnEnter(frame)
+    RRL.DisplayTooltip(frame)
+end
+function RRL.ldb_obj.OnLeave(frame)
+    RRL.DestroyTooltip(frame)
+end
 
 -- onclick handler
 function RRL.ldb_obj.OnClick(_, which)
@@ -33,10 +39,12 @@ end
 
 -- display the LDB tooltip
 function RRL.ldb_obj.OnEnter(frame)
+    self:Debug('ldb frame onenter is',frame)
     RRL:DisplayTooltip(frame)
 end
 
 function RRL.ldb_obj.OnLeave(frame)
+    self:Debug('ldb frame onleave is',frame)
     RRL:DestroyTooltip(frame)
 end
 

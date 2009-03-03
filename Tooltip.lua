@@ -4,7 +4,7 @@
 
 local LibQTip = LibStub('LibQTip-1.0')
 
-function RRL:DisplayTooltip(frame)
+function RRL:DisplayTooltip()
 
     -- acquire
     local tip = LibQTip:Acquire("RRLMinionTooltip", 2, "LEFT", "RIGHT")

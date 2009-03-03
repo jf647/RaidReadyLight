@@ -12,3 +12,4 @@ StateChange.lua
 Options.lua
 LDB.lua
 Minion.lua
+Tooltip.lua
