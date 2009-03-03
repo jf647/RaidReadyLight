@@ -6,8 +6,9 @@ TODO
 ====
 
 - replace static text with locales
+  - use wowace's localization web site?  Can we do that if it's not in their SVN?
 
-- get acedboptions working again
+- get acedboptions working
 
 - clean up gui (critical members should be a listbox with buttons to delete or clear, field to add
 
@@ -18,8 +19,6 @@ TODO
 - minion stuff
            
   - mouseover shows details like tooltip
-  
-  - appears/dissapears if minion is enabled or disabled at runtime instead of startup
 
 - change statechange.lua's wall-o-case into a matrix that defines what changes for each transition
 

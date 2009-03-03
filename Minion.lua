@@ -36,10 +36,15 @@ function RRL:CreateMinion()
         end
     end)
     f:SetScript('OnClick', function(_, which)
-        if "LeftButton" == which then
-            self:ToggleReady()
+        -- need to point this and the LDB one to the same function if possible
+        if "LeftButton" == which and 1 == RRL.state.inraid then
+            RRL:ToggleReady()
         elseif "RightButton" == which then
-            DoReadyCheck()
+            if IsControlKeyDown() then
+                InterfaceOptionsFrame_OpenToCategory(RRL.optionsFrames.rrl)
+            elseif 1 == RRL.state.inraid then
+                DoReadyCheck()
+            end
         end
     end)
     f:RegisterForDrag("LeftButton")

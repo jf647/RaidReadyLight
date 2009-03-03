@@ -1,6 +1,12 @@
-local L = LibStub("AceLocale-3.0"):NewLocale("RRL", "enUS", true)
+--
+-- $Id$
+-- 
 
-if L then
+-- local L = LibStub("AceLocale-3.0"):NewLocale("RRL", "enUS", true)
 
-end
+-- if L then
+-- end
+
+--
+-- EOF
 
