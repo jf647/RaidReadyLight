@@ -1,5 +1,5 @@
 --
--- $Id: Options.lua 4415 2009-03-02 13:55:24Z james $
+-- $Id$
 --
 
 -- locale setup
