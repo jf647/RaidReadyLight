@@ -69,6 +69,7 @@ end
 function RRL:DestroyMinion()
     f:Hide()
     f = nil
+    RRL.minion = nil
 end
 
 --

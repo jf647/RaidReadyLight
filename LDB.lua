@@ -33,9 +33,15 @@ end
 -- on entering the LDB or minion frame
 function RRL.ldb_obj.OnEnter(self)
     local tip = LibQTip:Acquire("RRLTooltip", 2, "LEFT", "RIGHT")
+    tip:SetScale(RRL.db.tooltipscale)
     self.tooltip = tip
-	tip:AddHeader('RRL: Raid Ready Light')
-	tip:AddLine(" ")
+    -- add the equivalent of the LDB status line if this is the minion
+    if RRL.minion and self == RRL.minion then
+        tip:AddHeader(RRL:GenLDBText())
+    else
+        tip:AddHeader('RRL: Raid Ready Light')
+    end
+    tip:AddLine(" ")
 	if 0 == RRL.state.inraid then
 		tip:AddLine(c:White("Only active when in a raid"))
 	else
@@ -94,10 +100,13 @@ function RRL.ldb_obj.OnEnter(self)
 	end
 	tip:AddLine(" ")
 	if 1 == RRL.state.inraid then
-        tip:AddHeader("Left-click to change your status")
-        tip:AddHeader("Right-click to do a ready check")
+        tip:AddHeader("Left-click:","toggle your status")
+        tip:AddHeader("Right-click:","do ready check")
     end
-	tip:AddHeader("Control-Right-click to configure")
+	tip:AddHeader("Ctrl-Right-click:","configure")
+    if RRL.minion and self == RRL.minion then
+        tip:AddHeader("Left-click-drag:", "move minion")
+    end
     tip:SmartAnchorTo(self)
 	tip:Show()
 end
@@ -111,6 +120,16 @@ end
 -- update the LDB text
 function RRL:UpdateLDBText()
     if 1 == self.state.inraid then
+        self.ldb_obj.text = self:GenLDBText()
+    else
+        self:Debug("updating LDB to show not active")
+      	self.ldb_obj.text = "Not Active"
+        self.ldb_obj.icon = "Interface\\RAIDFRAME\\ReadyCheck-Ready.png"
+    end
+end
+
+-- generate the LDB text
+function RRL:GenLDBText()
         -- build the LDB text
         local youstring
         local raidstring
@@ -133,12 +152,7 @@ function RRL:UpdateLDBText()
         if self.state.count.rrl.crit_notready > 0 then
             countstring = countstring .. "*"
         end
-        self.ldb_obj.text = youstring .. "/" .. raidstring .. " " .. c:White(countstring)
-    else
-        self:Debug("updating LDB to show not active")
-      	self.ldb_obj.text = "Not Active"
-        self.ldb_obj.icon = "Interface\\RAIDFRAME\\ReadyCheck-Ready.png"
-    end
+        return youstring .. "/" .. raidstring .. " " .. c:White(countstring)
 end
 
 --

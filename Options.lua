@@ -38,7 +38,7 @@ RRL.options = {
 					order = 110,
 				},
 			},
-            order = 200,
+            order = 100,
         },
         critical = {
 		    name = 'Critical Members',
@@ -64,30 +64,22 @@ RRL.options = {
                     name = 'List',
                     desc = 'lists members who must be ready',
                     func  = 'ListCritical',
-					order = 200,
+					order = 120,
                 },
                 clear = {
                     type = 'execute',
                     name = 'Clear',
                     desc = 'clears members who must be ready',
                     func  = 'ClearCritical',
-					order = 210,
+					order = 130,
                 },
             },
-            order = 300,
+            order = 110,
         },
-        interval = {
-            type = 'range',
-            name = 'get/set update interval',
-            desc = 'get or set the raid update interval',
-			min  = 1,
-			max  = 3600,
-			step = 1,
-			bigStep = 30,
-            set  = 'SetInterval',
-            get  = function(info) return RRL.db.updateinterval end,
-			disabled = true,
-			order = 100,
+        divider1 = {
+            type = 'header',
+            name = '',
+            order = 99,
         },
 		readycheck = {
 			type = 'toggle',
@@ -95,23 +87,7 @@ RRL.options = {
 			desc = 'auto-respond to ready checks',
 			get  = function(info) return RRL.db.readycheck_respond end,
 			set  = 'ToggleReadyCheck',
-			order = 110,
-		},
-        debug = LibStub('LibDebugLog-1.0'):GetAce3OptionTable(self, 140),
-        dump = {
-            type = 'execute',
-            name = 'Dump State',
-            desc = 'dump the member state and counts',
-			func = 'Dump',
-			guiHidden = true,
-        },
-		extendedtooltip = {
-			type = 'toggle',
-			name = 'Extended Tooltip',
-			desc = 'toggle the extended tooltip on/off',
-			get  = function(info) return RRL.db.exttooltip end,
-			set  = function(info) RRL.db.exttooltip = not RRL.db.exttooltip end,
-			order = 130,
+			order = 100,
 		},
 		minion = {
 			type = 'toggle',
@@ -119,8 +95,21 @@ RRL.options = {
 			desc = 'toggle the RRL minion on/off',
 			get  = function(info) return RRL.db.minion end,
 			set  = 'ToggleMinion',
+			order = 110,
+		},
+        extendedtooltip = {
+			type = 'toggle',
+			name = 'Extended Tooltip',
+			desc = 'toggle the extended tooltip on/off',
+			get  = function(info) return RRL.db.exttooltip end,
+			set  = function(info) RRL.db.exttooltip = not RRL.db.exttooltip end,
 			order = 120,
 		},
+        divider2 = {
+            type = 'header',
+            name = '',
+            order = 130,
+        },
 		minionscale = {
 			type = 'range',
 			name = 'Minion Scale',
@@ -135,8 +124,42 @@ RRL.options = {
                 end
             end,
             get  = function(info) return RRL.db.minionscale end,
-			order = 121,
+			order = 140,
+            cmdHidden = true,
 		},
+		tooltipscale = {
+			type = 'range',
+			name = 'Tooltip Scale',
+			desc = 'set the scale of the tooltip',
+			min  = 0.5,
+			max  = 2,
+			step = 0.1,
+            set  = function(info,scale) RRL.db.tooltipscale = scale end,
+            get  = function(info) return RRL.db.tooltipscale end,
+			order = 150,
+            cmdHidden = true,
+		},
+        interval = {
+            type = 'range',
+            name = 'get/set update interval',
+            desc = 'get or set the raid update interval',
+			min  = 1,
+			max  = 3600,
+			step = 1,
+			bigStep = 30,
+            set  = 'SetInterval',
+            get  = function(info) return RRL.db.updateinterval end,
+            order = 160,
+            hidden = true,
+        },
+        dump = {
+            type = 'execute',
+            name = 'Dump State',
+            desc = 'dump the member state and counts',
+			func = 'Dump',
+			guiHidden = true,
+        },
+        debug = LibStub('LibDebugLog-1.0'):GetAce3OptionTable(self, 140),
     },
 }
 
@@ -150,6 +173,7 @@ RRL.defaults = {
 		exttooltip = false,
         minion = true,
         minionscale = 1.0,
+        tooltipscale = 0.8,
 	},
 }
 
@@ -265,6 +289,8 @@ end
 -- toggle the minion on/off
 function RRL:ToggleMinion(info)
     RRL.db.minion = not RRL.db.minion
+    self:Debug("RRL.db.minion is",RRL.db.minion)
+    self:Debug("RRL.minion is",RRL.minion)
     if RRL.db.minion and not RRL.minion then
         self:Debug('minion enabled but not active; creating it')
         self:CreateMinion()

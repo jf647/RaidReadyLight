@@ -13,6 +13,7 @@ TODO
 - clean up gui (critical members should be a listbox with buttons to delete or clear, field to add
 
 - figure out why "everyone is ready" is displayed twice on ready check
+  - cannot reproduce
 
 - consider adding a mana check to go auto-not-ready (and auto-ready when you go back up)
 
