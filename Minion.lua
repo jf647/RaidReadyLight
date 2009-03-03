@@ -1,5 +1,5 @@
 --
--- $Id$
+-- $Id: Minion.lua 4417 2009-03-03 08:53:39Z james $
 --
 
 local f
@@ -22,11 +22,26 @@ function RRL:CreateMinion()
         f:SetPoint('CENTER', -100, 0)
         self.db.statusframex, self.db.statusframey = f:GetCenter()
     end
-    f:SetScript('OnDragStart', function() RRL.Minion_OnDragStart() end)
-    f:SetScript('OnDragStop', function() RRL.Minion_OnDragStop() end)
-    f:SetScript('OnClick', RRL.Minion_OnClick)
-    f:SetScript('OnEnter', function(frame) self:Debug('frame is',frame) self:Debug('f is',f) RRL.DisplayTooltip(f) end)
-    f:SetScript('OnLeave', function(frame) RRL.DestroyTooltip(f) end)
+    f:SetScript("OnDragStart", function(frame)
+        if IsAltKeyDown() then
+            ismoving = true
+            frame:StartMoving()
+        end
+    end)
+    f:SetScript("OnDragStop", function(frame)
+        if ismoving then
+            frame:StopMovingOrSizing()
+            ismoving = false
+            RRL.db.statusframex, RRL.db.statusframey = frame:GetCenter()
+        end
+    end)
+    f:SetScript('OnClick', function(_, which)
+        if "LeftButton" == which then
+            self:ToggleReady()
+        elseif "RightButton" == which then
+            DoReadyCheck()
+        end
+    end)
     f:RegisterForDrag("LeftButton")
     f:SetMovable(true)
     f:SetClampedToScreen(true)
@@ -56,33 +71,6 @@ end
 function RRL:DestroyMinion()
     f:Hide()
     f = nil
-end
-
-function RRL:Minion_OnDragStart()
-    if IsAltKeyDown() then
-        ismoving = true
-        f:StartMoving()
-    end
-end
-
-function RRL:Minion_OnDragStop()
-    if ismoving then
-        f:StopMovingOrSizing()
-        ismoving = false
-        RRL.db.statusframex, RRL.db.statusframey = f:GetCenter()
-    end
-end
-
-function RRL:Minion_OnClick(_, which)
-    if "LeftButton" == which and 1 == RRL.state.inraid then
-        RRL:ToggleReady()
-    elseif "RightButton" == which then
-        if IsControlKeyDown() then
-            InterfaceOptionsFrame_OpenToCategory(RRL.optionsFrames.rrl)
-        elseif 1 == RRL.state.inraid then
-            DoReadyCheck()
-        end
-    end
 end
 
 --

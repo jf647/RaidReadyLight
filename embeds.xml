@@ -17,7 +17,6 @@
   
   <Script file="Libs\LibDataBroker-1.1\LibDataBroker-1.1.lua"/>
   <Script file="Libs\LibCrayon-3.0\LibCrayon-3.0.lua"/>
-  <Script file="Libs\LibQTip-1.0\LibQTip-1.0.lua"/>
   
 </Ui>
 

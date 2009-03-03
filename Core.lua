@@ -1,5 +1,5 @@
 --
--- $Id$
+-- $Id: Core.lua 4417 2009-03-03 08:53:39Z james $
 --
 
 -- module setup
@@ -14,7 +14,7 @@ RRL = LibStub("AceAddon-3.0"):NewAddon(
 )
 
 -- XXX development mode, force debug on
-RRL:ToggleDebugLog(true)
+---RRL:ToggleDebugLog(true)
 
 -- constants
 RRL.STATE_OK = 0
@@ -120,7 +120,7 @@ function RRL:JoinRaid()
 	-- register to receive addon messages
     self:RegisterComm("RRL1")
     -- start firing our maint roster event every interval
-    self.maint_timer = self:ScheduleRepeatingTimer('MaintRoster', self.db.updateinterval)
+    self:ScheduleRepeatingTimer('MaintRoster', self.db.updateinterval)
 	-- send a status msg, then start firing them on a timer
 	self:SendStatus()
     self.send_timer = self:ScheduleRepeatingTimer('SendStatus', self.db.updateinterval)
@@ -383,29 +383,12 @@ end
 -- check our roster, make sure that we don't still have someone who has left
 -- the raid
 function RRL:CheckRoster()
-
-    -- has someone left?
     for k,v in pairs(self.roster)
     do
         if not UnitInRaid(k) then
             self:StateChange(v, nil)
         end
     end
-    
-    -- has someone joined?
-	for i = 1, 40, 1
-	do
-		local name, rank, subgroup, level, class, fileName,
-			zone, online, isDead, role, isML = GetRaidRosterInfo(i)
-		if name then
-            if online then
-                self:StateChange(nil, self.STATE_NEW, nil, name)
-            else
-                self:StateChange(nil, self.STATE_OFFLINE, nil, name)
-            end
-		end
-	end
-
 end
 
 -- dump the member list

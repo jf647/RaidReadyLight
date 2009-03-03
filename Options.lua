@@ -1,5 +1,5 @@
 --
--- $Id$
+-- $Id: Options.lua 4415 2009-03-02 13:55:24Z james $
 --
 
 -- locale setup
@@ -118,7 +118,7 @@ RRL.options = {
 			name = 'Minion',
 			desc = 'toggle the RRL minion on/off',
 			get  = function(info) return RRL.db.minion end,
-			set  = 'ToggleMinion',
+			set  = function(info) RRL.db.minion = not RRL.db.minion end,
 			order = 120,
 		},
 		minionscale = {
@@ -168,23 +168,9 @@ function RRL:SetInterval(info, interval)
 		self:Print("interval range: 1-600")
 	else
 		RRL.db.updateinterval = interval
-		self:CancelTimer(self.maint_timer, true)
-        self:CancelTimer(self.send_timer, true)
-		self.maint_timer = self:ScheduleRepeatingTimer('MaintRoster', interval)
-		self.send_timer = self:ScheduleRepeatingTimer('SendStatus', interval)
+		self:CancelTimer(self.send_timer, true)
+		self.send_timer = self:ScheduleRepeatingTimer('RRL_SEND_UPDATE', interval)
 	end
-end
-
--- toggle the minion on/off
-function RRL:ToggleMinion(info)
-    RRL.db.minion = not RRL.db.minion
-    if RRL.db.minion and not RRL.minion then
-        self:Debug('minion enabled but not active; creating it')
-        self:CreateMinion()
-    elseif not RRL.db.minion and RRL.minion then
-        self:Debug('minion disabled but active; destroying it')
-        self:DestroyMinion()
-    end
 end
 
 -- lists critical members

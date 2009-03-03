@@ -2,7 +2,7 @@
 ## Title: RRL (Raid Ready Light)
 ## Notes: lets raid members indicate their ready status with a simple "traffic light" interface
 ## Author: James FitzGibbon <addons@nadt.net>
-## Version: 0.11
+## Version: 0.10
 ## SavedVariables: RRLDB
 
 embeds.xml
@@ -12,4 +12,3 @@ StateChange.lua
 Options.lua
 LDB.lua
 Minion.lua
-Tooltip.lua
