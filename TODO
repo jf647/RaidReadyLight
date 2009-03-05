@@ -19,9 +19,11 @@ TODO
 
 - change statechange.lua's wall-o-case into a matrix that defines what changes for each transition
 
-- get a better graphic.  done by someone who doesn't SUCK AT ART
-
-- allow for disabling the addon at runtime (or disable in certain zones perhaps, like Wintergrasp)
+- allow for disabling the addon at runtime
+  - might require creating the minion all the time and just hiding when we're not in a raid
+    or it is disabled
+    
+- add a tooltip border to the minion
 
 #
 # EOF

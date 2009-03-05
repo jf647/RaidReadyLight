@@ -14,7 +14,7 @@ RRL.ldb_obj = LibStub("LibDataBroker-1.1"):NewDataObject("RRL", {
 	type  = "data source",
 	label = 'RRL',
 	text  = "Not Active",
-	icon  = "Interface\\RAIDFRAME\\ReadyCheck-Ready.png",
+	icon  = "Interface\\RAIDFRAME\\ReadyCheck-Waiting.png",
 })
 
 -- onclick handler
@@ -124,7 +124,7 @@ function RRL:UpdateLDBText()
     else
         self:Debug("updating LDB to show not active")
       	self.ldb_obj.text = "Not Active"
-        self.ldb_obj.icon = "Interface\\RAIDFRAME\\ReadyCheck-Ready.png"
+        self.ldb_obj.icon = "Interface\\RAIDFRAME\\ReadyCheck-Waiting.png"
     end
 end
 
