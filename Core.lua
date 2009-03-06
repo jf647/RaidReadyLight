@@ -9,11 +9,11 @@ RRL = LibStub("AceAddon-3.0"):NewAddon(
     "AceComm-3.0",
     "AceEvent-3.0",
 	"AceTimer-3.0",
-	"AceHook-3.0",
+	"AceHook-3.0"
 )
 
 -- tekDebug stuff
-local debugf = tekDebug and tekDebug:GetFrame("MyAddon")
+local debugf = tekDebug and tekDebug:GetFrame("RRL")
 if debugf then
     function RRL:Debug(...) self:Print(debugf, ...) end
 else
@@ -36,6 +36,10 @@ local myname
 
 -- locale setup
 --local L = LibStub("AceLocale-3.0"):GetLocale("RRL", true)
+
+-- keybind names
+BINDING_HEADER_RRL = "RRL"
+BINDING_NAME_RRL_TOGGLEMINION = "Toggle Minion"
 
 -- state variables
 RRL.state = {
@@ -385,6 +389,8 @@ end
 -- add/remove people from our internal roster as required
 function RRL:CheckRoster()
     
+    local count_changed = false
+    
     -- has someone joined?
     for i = 1, 40, 1
     do
@@ -397,6 +403,7 @@ function RRL:CheckRoster()
                 else
                     self:StateChange(nil, self.STATE_OFFLINE, nil, name)
                 end
+                count_changed = true
             end
         end
     end
@@ -406,8 +413,14 @@ function RRL:CheckRoster()
     do
         if not UnitInRaid(k) then
             self:Debug(name,'left the raid')
-            self:StateChange(v, nil)
+            self:StateChange(v, nil, nil, k)
+            count_changed = true
         end
+    end
+
+    -- if anything changed, determine if the raid is ready
+    if count_changed then
+        self:CalcRaidReady()
     end
     
 end

@@ -10,22 +10,16 @@ TODO
 
 - get acedboptions working
 
-- clean up gui (critical members should be a listbox with buttons to delete or clear, field to add
+- clean up gui
+  - critical members should be a listbox with buttons to delete or clear, field to add
 
 - figure out why "everyone is ready" is displayed twice on ready check
-  - cannot reproduce
 
 - consider adding a mana check to go auto-not-ready (and auto-ready when you go back up)
 
 - change statechange.lua's wall-o-case into a matrix that defines what changes for each transition
 
-- allow for disabling the addon at runtime
-  - might require creating the minion all the time and just hiding when we're not in a raid
-    or it is disabled
-    
-- get multi-frame minion working
-    
-- add a tooltip border to the minion
+- make debug setting part of profile and changeable at runtime
 
 #
 # EOF

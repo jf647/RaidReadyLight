@@ -171,7 +171,7 @@ RRL.defaults = {
 		critical = {},
 		exttooltip = false,
         minion = true,
-        minionscale = 1.0,
+        minionscale = 0.8,
         tooltipscale = 0.8,
 	},
 }
@@ -290,7 +290,7 @@ function RRL:ToggleMinion(info)
     RRL.db.minion = not RRL.db.minion
     self:Debug("RRL.db.minion is",RRL.db.minion)
     self:Debug("RRL.minion is",RRL.minion)
-    if RRL.db.minion and not RRL.minion then
+    if RRL.db.minion and not RRL.minion and 1 == self.state.inraid then
         self:Debug('minion enabled but not active; creating it')
         self:CreateMinion()
     elseif not RRL.db.minion and RRL.minion then

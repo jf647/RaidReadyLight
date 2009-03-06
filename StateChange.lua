@@ -9,6 +9,9 @@ function RRL:StateChange(member, newstate, isready, name)
     if member ~= nil then
         oldstate = member.state
         wasready = member.ready
+        if not name then
+            name = member.name
+        end
     else
         oldstate = nil
     end
@@ -20,7 +23,7 @@ function RRL:StateChange(member, newstate, isready, name)
                 self.state.count.rrl.notready = self.state.count.rrl.notready + 1
                 self.state.count.total.ready = self.state.count.total.ready - 1
                 self.state.count.total.notready = self.state.count.total.notready + 1
-                if self.db.critical[k] then
+                if self.db.critical[name] then
                     self.state.count.rrl.crit_notready = self.state.count.rrl.crit_notready + 1
                 end
             elseif not wasready and isready then
@@ -29,7 +32,7 @@ function RRL:StateChange(member, newstate, isready, name)
                 self.state.count.rrl.notready = self.state.count.rrl.notready - 1
                 self.state.count.total.ready = self.state.count.total.ready + 1
                 self.state.count.total.notready = self.state.count.total.notready - 1               
-                if self.db.critical[k] then
+                if self.db.critical[name] then
                     self.state.count.rrl.crit_notready = self.state.count.total.crit_notready - 1
                 end
             end
@@ -54,7 +57,7 @@ function RRL:StateChange(member, newstate, isready, name)
                 self.state.count.total.notready = self.state.count.total.notready - 1
             end
         elseif nil == newstate then
-            self.roster[k] = nil
+            self.roster[name] = nil
             self.state.count.total.all = self.state.count.total.all - 1
             if wasready then
                 self.state.count.total.ready = self.state.count.total.ready - 1
@@ -94,7 +97,7 @@ function RRL:StateChange(member, newstate, isready, name)
             self.state.count.other.new = self.state.count.other.new - 1
             self.state.count.other.afk = self.state.count.other.afk + 1
         elseif nil == newstate then
-            self.roster[k] = nil
+            self.roster[name] = nil
             self.state.count.other.new = self.state.count.other.new - 1
             self.state.count.total.all = self.state.count.total.all - 1
             self.state.count.total.ready = self.state.count.total.ready - 1
@@ -129,7 +132,7 @@ function RRL:StateChange(member, newstate, isready, name)
             self.state.count.other.pinged = self.state.count.other.pinged - 1
             self.state.count.other.afk = self.state.count.other.afk + 1
         elseif nil == newstate then
-            self.roster[k] = nil
+            self.roster[name] = nil
             self.state.count.other.pinged = self.state.count.other.pinged - 1
             self.state.count.total.all = self.state.count.total.all - 1
             self.state.count.total.ready = self.state.count.total.ready - 1
@@ -154,7 +157,7 @@ function RRL:StateChange(member, newstate, isready, name)
                 self.state.count.rrl.notready = self.state.count.rrl.notready + 1
             end
         elseif nil == newstate then
-            self.roster[k] = nil
+            self.roster[name] = nil
             self.state.count.other.offline = self.state.count.other.offline - 1
             self.state.count.total.all = self.state.count.total.all - 1
             self.state.count.total.notready = self.state.count.total.notready - 1
@@ -185,7 +188,7 @@ function RRL:StateChange(member, newstate, isready, name)
                 self.state.count.total.notready = self.state.count.total.notready + 1
             end
         elseif nil == newstate then
-            self.roster[k] = nil
+            self.roster[name] = nil
             self.state.count.other.noaddon = self.state.count.other.noaddon - 1
             self.state.count.total.all = self.state.count.total.all - 1
             self.state.count.total.ready = self.state.count.total.ready - 1
@@ -214,7 +217,7 @@ function RRL:StateChange(member, newstate, isready, name)
                 self.state.count.rrl.notready = self.state.count.rrl.notready + 1
             end
         elseif nil == newstate then
-            self.roster[k] = nil
+            self.roster[name] = nil
             self.state.count.other.afk = self.state.count.other.afk - 1
             self.state.count.total.all = self.state.count.total.all - 1
             self.state.count.total.notready = self.state.count.total.notready - 1

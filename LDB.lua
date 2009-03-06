@@ -100,12 +100,12 @@ function RRL.ldb_obj.OnEnter(frame)
 	end
 	tip:AddLine(" ")
 	if 1 == RRL.state.inraid then
-        tip:AddHeader("Left-click:","toggle your status")
-        tip:AddHeader("Right-click:","do ready check")
+        tip:AddHeader("Left-click to toggle your status")
+        tip:AddHeader("Right-click to do ready check")
     end
-	tip:AddHeader("Ctrl-Right-click:","configure")
+	tip:AddHeader("Ctrl-Right-click to configure")
     if RRL.minion and frame == RRL.minion then
-        tip:AddHeader("Left-click-drag:", "move minion")
+        tip:AddHeader("Alt-Left-drag to move minion")
     end
     tip:SmartAnchorTo(frame)
 	tip:Show()

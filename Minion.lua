@@ -9,14 +9,28 @@ local tl
 local tlt
 local ismoving = false
 
+-- backdrop for the minion
+local bg = {
+	bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+	edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+	edgeSize = 16,
+	insets = {left = 5, right = 5, top = 5, bottom = 5},
+	tile = true,
+    tileSize = 16,
+}
+
 function RRL:CreateMinion()
 
     -- the main containing frame
     mf = CreateFrame("Button", nil, UIParent)
     mf:Hide()
     mf:SetFrameStrata("LOW")
-    mf:SetHeight(68)
-    mf:SetWidth(46)
+    mf:SetHeight(78)
+    mf:SetWidth(64)
+    mf:SetBackdrop(bg)
+    mf:SetBackdropColor(0, 0, 0, 1)
+    mf:SetBackdropBorderColor(0.5, 0.5, 0.5, 0.5)
+    
     mf:SetScale(self.db.minionscale)
     if self.db.statusframex then
         mf:SetPoint('BOTTOMLEFT', self.db.statusframex, self.db.statusframey)
@@ -27,23 +41,25 @@ function RRL:CreateMinion()
 
     -- your state icon
     ys = CreateFrame("Frame", nil, mf)
-    ys:SetHeight(8)
-    ys:SetWidth(8)
-    ys:SetPoint('TOPLEFT', mf, 'TOPLEFT', 2, -2)
+    ys:SetHeight(16)
+    ys:SetWidth(16)
+    ys:SetPoint('TOPLEFT', mf, 'TOPLEFT', 7, -7)
     yst = ys:CreateTexture(nil, "ARTWORK")
     yst:SetTexture("Interface\\RAIDFRAME\\ReadyCheck-Waiting.png")
-    yst:SetAllpoints(ys)
+    yst:SetAllPoints(ys)
     ys.texture = yst
+    ys:Show()
     
     -- traffic light and texture
     tl = CreateFrame("Frame", nil, mf)
     tl:SetHeight(64)
     tl:SetWidth(32)
-    tl:SetPoint('TOPRIGHT', mf, 'TOPRIGHT', -2, -2)
+    tl:SetPoint('TOPRIGHT', mf, 'TOPRIGHT', -7, -7)
     tlt = tl:CreateTexture(nil, "ARTWORK")   
     tlt:SetTexture("Interface\\Addons\\RRL\\Images\\rrl_trafficlight_red_low_green_low.tga")
     tlt:SetAllPoints(tl)
     tl.texture = tlt
+    tl:Show()
     
     -- frame event handlers
     mf:SetScript("OnDragStart", RRL.Minion_OnDragStart)
@@ -55,6 +71,9 @@ function RRL:CreateMinion()
     mf:SetMovable(true)
     mf:SetClampedToScreen(true)
     mf:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    
+    -- update the minion
+    self:UpdateMinion()
     
     -- show the minion
     mf:Show()
@@ -101,7 +120,7 @@ function RRL.Minion_OnDragStop(frame)
     if ismoving then
         frame:StopMovingOrSizing()
         ismoving = false
-        RRL.db.statusframex, RRL.db.statusframey = frame:GetCenter()
+        RRL.db.statusframex, RRL.db.statusframey = frame:GetLeft(), frame:GetBottom()
         RRL.ldb_obj.OnEnter(frame)
     end
 end
