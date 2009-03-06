@@ -32,6 +32,7 @@ function RRL:CreateMinion()
     ys:SetPoint('TOPLEFT', mf, 'TOPLEFT', 2, -2)
     yst = ys:CreateTexture(nil, "ARTWORK")
     yst:SetTexture("Interface\\RAIDFRAME\\ReadyCheck-Waiting.png")
+    yst:SetAllpoints(ys)
     ys.texture = yst
     
     -- traffic light and texture
@@ -41,6 +42,7 @@ function RRL:CreateMinion()
     tl:SetPoint('TOPRIGHT', mf, 'TOPRIGHT', -2, -2)
     tlt = tl:CreateTexture(nil, "ARTWORK")   
     tlt:SetTexture("Interface\\Addons\\RRL\\Images\\rrl_trafficlight_red_low_green_low.tga")
+    tlt:SetAllPoints(tl)
     tl.texture = tlt
     
     -- frame event handlers
