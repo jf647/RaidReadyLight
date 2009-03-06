@@ -23,6 +23,8 @@ TODO
   - might require creating the minion all the time and just hiding when we're not in a raid
     or it is disabled
     
+- get multi-frame minion working
+    
 - add a tooltip border to the minion
 
 #

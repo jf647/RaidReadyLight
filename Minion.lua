@@ -27,17 +27,15 @@ function RRL:CreateMinion()
 
     -- your state icon
     ys = CreateFrame("Frame", nil, mf)
-    ys:Hide()
     ys:SetHeight(8)
     ys:SetWidth(8)
     ys:SetPoint('TOPLEFT', mf, 'TOPLEFT', 2, -2)
-    yst = ts:CreateTexture(nil, "ARTWORK")
+    yst = ys:CreateTexture(nil, "ARTWORK")
     yst:SetTexture("Interface\\RAIDFRAME\\ReadyCheck-Waiting.png")
     ys.texture = yst
     
     -- traffic light and texture
     tl = CreateFrame("Frame", nil, mf)
-    tl:Hide()
     tl:SetHeight(64)
     tl:SetWidth(32)
     tl:SetPoint('TOPRIGHT', mf, 'TOPRIGHT', -2, -2)
@@ -46,21 +44,8 @@ function RRL:CreateMinion()
     tl.texture = tlt
     
     -- frame event handlers
-    f:SetScript("OnDragStart", function(frame)
-        if IsAltKeyDown() then
-            ismoving = true
-            RRL.ldb_obj.OnLeave(frame)
-            frame:StartMoving()
-        end
-    end)
-    f:SetScript("OnDragStop", function(frame)
-        if ismoving then
-            frame:StopMovingOrSizing()
-            ismoving = false
-            RRL.db.statusframex, RRL.db.statusframey = frame:GetCenter()
-            RRL.ldb_obj.OnEnter(frame)
-        end
-    end)
+    mf:SetScript("OnDragStart", RRL.Minion_OnDragStart)
+    mf:SetScript("OnDragStop", RRL.Minion_OnDragStop)
     mf:SetScript("OnClick", RRL.ldb_obj.OnClick)
     mf:SetScript("OnLeave", RRL.ldb_obj.OnLeave)
     mf:SetScript("OnEnter", RRL.ldb_obj.OnEnter)    
@@ -70,8 +55,6 @@ function RRL:CreateMinion()
     mf:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     
     -- show the minion
-    tl:Show()
-    ys:Show()
     mf:Show()
     RRL.minion = mf
 end
@@ -102,6 +85,23 @@ function RRL:DestroyMinion()
     ys = nil
     mf = nil
     RRL.minion = nil
+end
+
+function RRL.Minion_OnDragStart(frame)
+    if IsAltKeyDown() then
+        ismoving = true
+        RRL.ldb_obj.OnLeave(frame)
+        frame:StartMoving()
+    end
+end
+
+function RRL.Minion_OnDragStop(frame)
+    if ismoving then
+        frame:StopMovingOrSizing()
+        ismoving = false
+        RRL.db.statusframex, RRL.db.statusframey = frame:GetCenter()
+        RRL.ldb_obj.OnEnter(frame)
+    end
 end
 
 --

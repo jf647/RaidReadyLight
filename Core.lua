@@ -10,11 +10,15 @@ RRL = LibStub("AceAddon-3.0"):NewAddon(
     "AceEvent-3.0",
 	"AceTimer-3.0",
 	"AceHook-3.0",
-    "LibDebugLog-1.0"
 )
 
--- XXX development mode, force debug on
----RRL:ToggleDebugLog(true)
+-- tekDebug stuff
+local debugf = tekDebug and tekDebug:GetFrame("MyAddon")
+if debugf then
+    function RRL:Debug(...) self:Print(debugf, ...) end
+else
+    function RRL:Debug(...) end
+end
 
 -- constants
 RRL.STATE_OK = 0
@@ -263,11 +267,10 @@ function RRL:MaintRoster()
     self:Debug("maintaining roster")
 
     -- if our total doesn't match the GetNumRaidMembers, something has
-    -- gone wrong.  force a roster re-scan
+    -- gone wrong.  check the roster
     if GetNumRaidMembers() ~= self.state.count.total.all then
-        self:Print(c:Red('ERROR:'), 'raid size count mismatch, re-scanning roster')
-        self:BuildRoster()
-        return
+        self:Debug('raid/roster size mismatch',GetNumRaidMembers(),self.state.count.total.all)
+        self:CheckRoster()
     end
 
     -- calculate our cutoff times
@@ -379,8 +382,7 @@ function RRL:MaintRoster()
     
 end
 
--- check our roster, make sure that we don't still have someone who has left
--- the raid
+-- add/remove people from our internal roster as required
 function RRL:CheckRoster()
     
     -- has someone joined?

@@ -159,7 +159,6 @@ RRL.options = {
 			func = 'Dump',
 			guiHidden = true,
         },
-        debug = LibStub('LibDebugLog-1.0'):GetAce3OptionTable(self, 140),
     },
 }
 

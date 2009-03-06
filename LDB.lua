@@ -18,7 +18,7 @@ RRL.ldb_obj = LibStub("LibDataBroker-1.1"):NewDataObject("RRL", {
 })
 
 -- onclick handler
-function RRL.ldb_obj.OnClick(self, which)
+function RRL.ldb_obj.OnClick(frame, which)
 	if "LeftButton" == which and 1 == RRL.state.inraid then
 		RRL:ToggleReady()
 	elseif "RightButton" == which then
@@ -31,12 +31,12 @@ function RRL.ldb_obj.OnClick(self, which)
 end
 
 -- on entering the LDB or minion frame
-function RRL.ldb_obj.OnEnter(self)
+function RRL.ldb_obj.OnEnter(frame)
     local tip = LibQTip:Acquire("RRLTooltip", 2, "LEFT", "RIGHT")
     tip:SetScale(RRL.db.tooltipscale)
-    self.tooltip = tip
+    frame.tooltip = tip
     -- add the equivalent of the LDB status line if this is the minion
-    if RRL.minion and self == RRL.minion then
+    if RRL.minion and frame == RRL.minion then
         tip:AddHeader(RRL:GenLDBText())
     else
         tip:AddHeader('RRL: Raid Ready Light')
@@ -104,17 +104,17 @@ function RRL.ldb_obj.OnEnter(self)
         tip:AddHeader("Right-click:","do ready check")
     end
 	tip:AddHeader("Ctrl-Right-click:","configure")
-    if RRL.minion and self == RRL.minion then
+    if RRL.minion and frame == RRL.minion then
         tip:AddHeader("Left-click-drag:", "move minion")
     end
-    tip:SmartAnchorTo(self)
+    tip:SmartAnchorTo(frame)
 	tip:Show()
 end
 
 -- on leaving the LDB object or minion frame
-function RRL.ldb_obj.OnLeave(self)
-    LibQTip:Release(self.tooltip)
-    self.tooltip = nil
+function RRL.ldb_obj.OnLeave(frame)
+    LibQTip:Release(frame.tooltip)
+    frame.tooltip = nil
 end
 
 -- update the LDB text
