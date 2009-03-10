@@ -33,7 +33,7 @@ function RRL:StateChange(member, newstate, isready, name)
                 self.state.count.total.ready = self.state.count.total.ready + 1
                 self.state.count.total.notready = self.state.count.total.notready - 1               
                 if self.db.critical[name] then
-                    self.state.count.rrl.crit_notready = self.state.count.total.crit_notready - 1
+                    self.state.count.rrl.crit_notready = self.state.count.rrl.crit_notready - 1
                 end
             end
         elseif self.STATE_OFFLINE == newstate then
@@ -67,7 +67,7 @@ function RRL:StateChange(member, newstate, isready, name)
                 self.state.count.rrl.notready = self.state.count.rrl.notready - 1
             end
         else
-            self:Print('unhandled state change from',oldstate,'to',newstate)
+            self:Debug('unhandled state change from',oldstate,'to',newstate)
         end
     elseif self.STATE_NEW == oldstate then 
         if self.STATE_OFFLINE == newstate then
@@ -102,7 +102,7 @@ function RRL:StateChange(member, newstate, isready, name)
             self.state.count.total.all = self.state.count.total.all - 1
             self.state.count.total.ready = self.state.count.total.ready - 1
         else
-            self:Print('unhandled state change from',oldstate,'to',newstate)
+            self:Debug('unhandled state change from',oldstate,'to',newstate)
         end
     elseif self.STATE_PINGED == oldstate then 
         if self.STATE_OFFLINE == newstate then
@@ -137,7 +137,7 @@ function RRL:StateChange(member, newstate, isready, name)
             self.state.count.total.all = self.state.count.total.all - 1
             self.state.count.total.ready = self.state.count.total.ready - 1
         else
-            self:Print('unhandled state change from',oldstate,'to',newstate)
+            self:Debug('unhandled state change from',oldstate,'to',newstate)
         end
     elseif self.STATE_OFFLINE == oldstate then
         if self.STATE_NEW == newstate then
@@ -162,7 +162,7 @@ function RRL:StateChange(member, newstate, isready, name)
             self.state.count.total.all = self.state.count.total.all - 1
             self.state.count.total.notready = self.state.count.total.notready - 1
         else
-            self:Print('unhandled state change from',oldstate,'to',newstate)
+            self:Debug('unhandled state change from',oldstate,'to',newstate)
         end
     elseif self.STATE_NORRL == oldstate then
         if self.STATE_OFFLINE == newstate then
@@ -193,7 +193,7 @@ function RRL:StateChange(member, newstate, isready, name)
             self.state.count.total.all = self.state.count.total.all - 1
             self.state.count.total.ready = self.state.count.total.ready - 1
         else
-            self:Print('unhandled state change from',oldstate,'to',newstate)
+            self:Debug('unhandled state change from',oldstate,'to',newstate)
         end
     elseif self.STATE_AFK == oldstate then
         if self.STATE_OFFLINE == newstate then
@@ -222,7 +222,7 @@ function RRL:StateChange(member, newstate, isready, name)
             self.state.count.total.all = self.state.count.total.all - 1
             self.state.count.total.notready = self.state.count.total.notready - 1
         else
-            self:Print('unhandled state change from',oldstate,'to',newstate)
+            self:Debug('unhandled state change from',oldstate,'to',newstate)
         end
     elseif nil == oldstate then
         if self.STATE_NEW == newstate then
@@ -262,10 +262,10 @@ function RRL:StateChange(member, newstate, isready, name)
             }
             member = self.roster[name]
         else
-            self:Print('unhandled state change from',oldstate,'to',newstate)
+            self:Debug('unhandled state change from',oldstate,'to',newstate)
         end
     else
-        self:Print('unhandled old state', oldstate)
+        self:Debug('unhandled old state', oldstate)
         return
     end
     member.state = newstate

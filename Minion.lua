@@ -36,7 +36,7 @@ function RRL:CreateMinion()
         mf:SetPoint('BOTTOMLEFT', self.db.statusframex, self.db.statusframey)
     else
         mf:SetPoint('CENTER', -100, 0)
-        self.db.statusframex, self.db.statusframey = f:GetCenter()
+        self.db.statusframex, self.db.statusframey = mf:GetCenter()
     end
 
     -- your state icon

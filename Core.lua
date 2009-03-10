@@ -62,14 +62,19 @@ function RRL:OnInitialize()
 	self.database.RegisterCallback(self, "OnProfileReset", "OnProfileChanged")
 	-- get a local reference to our profile
 	self.db = self.database.profile
-	-- add AceDB profile handler (broken, gives error in library when standalone)
-	--self.options.args.profile = LibStub("AceDBOptions-3.0"):GetOptionsTable(self.db)
-	--self.options.args.profile.order = 200
+    -- profile options
+    self.optionsSlash.args.profile = LibStub("AceDBOptions-3.0"):GetOptionsTable(self.database)
+    self.optionsSlash.args.profile.order = -2
+    self.options.args.Profiles = LibStub("AceDBOptions-3.0"):GetOptionsTable(self.database)
+    self.options.args.Profiles.order = -2
 	-- register options
-	LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("Raid Ready Light", self.options)
-	LibStub("AceConfig-3.0"):RegisterOptionsTable("Raid Ready Light", self.options, "rrl")
+	LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("RRL", self.options)
+	LibStub("AceConfig-3.0"):RegisterOptionsTable("RRLSlashCommand", self.optionsSlash, "rrl")
+    -- set up GUI config frames
     self.optionsFrames = {}
-	self.optionsFrames.rrl = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Raid Ready Light")
+    local ACD3 = LibStub("AceConfigDialog-3.0")
+	self.optionsFrames.rrl = ACD3:AddToBlizOptions("RRL", nil, nil, "General")
+    self.optionsFrames.Profiles = ACD3:AddToBlizOptions("RRL", "Profiles", "RRL", "Profiles")
 end
 
 -- our profile has changed, get a new local reference
@@ -215,7 +220,7 @@ function RRL:OnCommReceived(prefix, message, distribution, sender)
 		self:SendStatus()
         self:Debug("responded to ping from",sender)
 	else
-		self:Print("ERROR: received unknown addon message type '"..msgtype.."' from", sender)
+		self:Debug("ERROR: received unknown addon message type '"..msgtype.."' from", sender)
 	end
 
 end
@@ -373,7 +378,7 @@ function RRL:MaintRoster()
                 end
             end
         else
-            self:Print(c:Red('ERROR: ') ..'unexpected state',v.state,'for',k)
+            self:Debug(c:Red('ERROR: ') ..'unexpected state',v.state,'for',k)
         end
     end
     
