@@ -32,6 +32,7 @@ function RRL:CreateMinion()
     mf:SetBackdropBorderColor(0.5, 0.5, 0.5, 0.5)
     
     mf:SetScale(self.db.minionscale)
+    mf:SetAlpha(self.db.minionalpha)
     if self.db.statusframex then
         mf:SetPoint('BOTTOMLEFT', self.db.statusframex, self.db.statusframey)
     else

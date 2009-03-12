@@ -73,28 +73,28 @@ function RRL.ldb_obj.OnEnter(frame)
 		end
 		for k,v in pairs(RRL.roster)
 		do
+            local critsuffix = ''
+            if RRL.db.critical[k] then
+                critsuffix = '*'
+            end
 			if RRL.STATE_OK == v.state then
 				if false == v.ready then
-					local critsuffix = ''
-					if true == v.critical then
-						critsuffix = '*'
-					end
 					tip:AddLine(c:White(k), c:Red('Not Ready'..critsuffix))
 				end
 			elseif RRL.STATE_OFFLINE == v.state then
-				tip:AddLine(c:White(k), c:Yellow('Offline'))
+				tip:AddLine(c:White(k), c:Yellow('Offline'..critsuffix))
 			elseif RRL.STATE_PINGED == v.state then
 				tip:AddLine(c:White(k), c:Yellow('Pinged'))
 			elseif RRL.STATE_NEW == v.state then
 				tip:AddLine(c:White(k), c:Yellow('New'))
 			elseif RRL.STATE_NORRL == v.state then
 				if false == v.ready then
-					tip:AddLine(c:White(k), c:Red('Not Ready'))
+					tip:AddLine(c:White(k), c:Red('Not Ready'..critsuffix))
 				else
 					tip:AddLine(c:White(k), c:Yellow('No Addon'))
 				end
 			elseif RRL.STATE_AFK == v.state then
-                tip:AddLine(c:White(k), c:Red('AFK'))
+                tip:AddLine(c:White(k), c:Red('AFK'..critsuffix))
             end
 		end
 	end

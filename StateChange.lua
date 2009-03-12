@@ -4,17 +4,28 @@
 
 -- update the counts based upon a given state change
 function RRL:StateChange(member, newstate, isready, name)
+
     local wasready
     local oldstate
-    if member ~= nil then
+    
+    self:Debug('member newstate isready name', member, newstate, isready, name)
+    
+    -- handle new members
+    local new = nil == member
+    if new then
+        self:Debug('member is new')
+        oldstate = nil
+    else
         oldstate = member.state
         wasready = member.ready
         if not name then
             name = member.name
         end
-    else
-        oldstate = nil
     end
+    
+    self:Debug('name oldstate newstate wasready isready', name, oldstate, newstate, wasready, isready)
+    
+    -- update counts
     if self.STATE_OK == oldstate then
         if self.STATE_OK == newstate then
             if wasready and not isready then
@@ -23,18 +34,12 @@ function RRL:StateChange(member, newstate, isready, name)
                 self.state.count.rrl.notready = self.state.count.rrl.notready + 1
                 self.state.count.total.ready = self.state.count.total.ready - 1
                 self.state.count.total.notready = self.state.count.total.notready + 1
-                if self.db.critical[name] then
-                    self.state.count.rrl.crit_notready = self.state.count.rrl.crit_notready + 1
-                end
             elseif not wasready and isready then
                 member.ready = true
                 self.state.count.rrl.ready = self.state.count.rrl.ready + 1
                 self.state.count.rrl.notready = self.state.count.rrl.notready - 1
                 self.state.count.total.ready = self.state.count.total.ready + 1
                 self.state.count.total.notready = self.state.count.total.notready - 1               
-                if self.db.critical[name] then
-                    self.state.count.rrl.crit_notready = self.state.count.rrl.crit_notready - 1
-                end
             end
         elseif self.STATE_OFFLINE == newstate then
             member.ready = false
@@ -67,7 +72,7 @@ function RRL:StateChange(member, newstate, isready, name)
                 self.state.count.rrl.notready = self.state.count.rrl.notready - 1
             end
         else
-            self:Debug('unhandled state change from',oldstate,'to',newstate)
+            self:Print(c:Red('ERROR'),'unhandled state change from',oldstate,'to',newstate)
         end
     elseif self.STATE_NEW == oldstate then 
         if self.STATE_OFFLINE == newstate then
@@ -102,7 +107,7 @@ function RRL:StateChange(member, newstate, isready, name)
             self.state.count.total.all = self.state.count.total.all - 1
             self.state.count.total.ready = self.state.count.total.ready - 1
         else
-            self:Debug('unhandled state change from',oldstate,'to',newstate)
+            self:Print(c:Red('ERROR'),'unhandled state change from',oldstate,'to',newstate)
         end
     elseif self.STATE_PINGED == oldstate then 
         if self.STATE_OFFLINE == newstate then
@@ -137,7 +142,7 @@ function RRL:StateChange(member, newstate, isready, name)
             self.state.count.total.all = self.state.count.total.all - 1
             self.state.count.total.ready = self.state.count.total.ready - 1
         else
-            self:Debug('unhandled state change from',oldstate,'to',newstate)
+            self:Print(c:Red('ERROR'),'unhandled state change from',oldstate,'to',newstate)
         end
     elseif self.STATE_OFFLINE == oldstate then
         if self.STATE_NEW == newstate then
@@ -162,7 +167,7 @@ function RRL:StateChange(member, newstate, isready, name)
             self.state.count.total.all = self.state.count.total.all - 1
             self.state.count.total.notready = self.state.count.total.notready - 1
         else
-            self:Debug('unhandled state change from',oldstate,'to',newstate)
+            self:Print(c:Red('ERROR'),'unhandled state change from',oldstate,'to',newstate)
         end
     elseif self.STATE_NORRL == oldstate then
         if self.STATE_OFFLINE == newstate then
@@ -193,7 +198,7 @@ function RRL:StateChange(member, newstate, isready, name)
             self.state.count.total.all = self.state.count.total.all - 1
             self.state.count.total.ready = self.state.count.total.ready - 1
         else
-            self:Debug('unhandled state change from',oldstate,'to',newstate)
+            self:Print(c:Red('ERROR'),'unhandled state change from',oldstate,'to',newstate)
         end
     elseif self.STATE_AFK == oldstate then
         if self.STATE_OFFLINE == newstate then
@@ -222,7 +227,7 @@ function RRL:StateChange(member, newstate, isready, name)
             self.state.count.total.all = self.state.count.total.all - 1
             self.state.count.total.notready = self.state.count.total.notready - 1
         else
-            self:Debug('unhandled state change from',oldstate,'to',newstate)
+            self:Print(c:Red('ERROR'),'unhandled state change from',oldstate,'to',newstate)
         end
     elseif nil == oldstate then
         if self.STATE_NEW == newstate then
@@ -262,12 +267,28 @@ function RRL:StateChange(member, newstate, isready, name)
             }
             member = self.roster[name]
         else
-            self:Debug('unhandled state change from',oldstate,'to',newstate)
+            self:Print(c:Red('ERROR'),'unhandled state change from',oldstate,'to',newstate)
         end
     else
-        self:Debug('unhandled old state', oldstate)
+        self:Print(c:Red('ERROR'),'unhandled old state', oldstate)
         return
     end
+    
+    -- did a critical member's state change?
+    if self.db.critical[name] then
+        if new then
+            if not member.ready then
+                self.state.count.rrl.crit_notready = self.state.count.rrl.crit_notready + 1
+            end
+        else
+            if wasready and not member.ready then
+                self.state.count.rrl.crit_notready = self.state.count.rrl.crit_notready + 1
+            elseif not wasready and member.ready then
+                self.state.count.rrl.crit_notready = self.state.count.rrl.crit_notready - 1
+            end
+        end
+    end
+    
     member.state = newstate
     member.last = time()
 end

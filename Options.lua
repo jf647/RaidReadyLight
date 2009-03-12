@@ -80,6 +80,23 @@ RRL.options = {
                     order = 140,
                     cmdHidden = true,
                 },
+                minionalpha = {
+                    type = 'range',
+                    name = 'Minion Alpha',
+                    desc = 'set the transparency of the minion frame',
+                    min  = 0.1,
+                    max  = 1,
+                    step = 0.1,
+                    set  = function(info,scale)
+                        RRL.db.minionalpha = scale
+                        if RRL.minion then
+                            RRL.minion:SetAlpha(scale)
+                        end
+                    end,
+                    get  = function(info) return RRL.db.minionalpha end,
+                    order = 145,
+                    cmdHidden = true,
+                },
                 tooltipscale = {
                     type = 'range',
                     name = 'Tooltip Scale',
@@ -204,6 +221,7 @@ RRL.defaults = {
         minion = true,
         minionscale = 0.8,
         tooltipscale = 0.8,
+        minionalpha = 1.0,
 	},
 }
 
