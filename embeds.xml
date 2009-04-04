@@ -14,10 +14,12 @@
   <Include file="Libs\AceLocale-3.0\AceLocale-3.0.xml"/>
   <Include file="Libs\AceTimer-3.0\AceTimer-3.0.xml"/>
   <Include file="Libs\AceComm-3.0\AceComm-3.0.xml"/>
+  <Include file="Libs\LibSink-2.0\lib.xml"/>
+  <Include file="Libs\LibQTip-1.0\lib.xml"/>
+  <Include file="Libs\LibCrayon-3.0\lib.xml"/>
   
   <Script file="Libs\LibDataBroker-1.1\LibDataBroker-1.1.lua"/>
-  <Script file="Libs\LibCrayon-3.0\LibCrayon-3.0.lua"/>
-  <Script file="Libs\LibQTip-1.0\LibQTip-1.0.lua"/>
+  <Script file="Libs\tekKonfig\tekKonfigAboutPanel.lua"/>
   
 </Ui>
 

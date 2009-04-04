@@ -14,7 +14,7 @@ RRL.optionsSlash = {
             type = 'execute',
             name = 'config',
             desc = 'open configuration pane',
-            func = function(info) InterfaceOptionsFrame_OpenToCategory(RRL.optionsFrames.rrl) end,
+            func = function(info) InterfaceOptionsFrame_OpenToCategory(RRL.optionsFrames.RRL) end,
             guiHidden = true,
         },
     },
@@ -25,11 +25,10 @@ RRL.options = {
     handler = RRL,
     type = 'group',
     args = {
-        General = {
-            order = 1,
+        Options = {
             type = 'group',
-            name = 'General Settings',
-            desc = 'General Settings',
+            name = 'General Options',
+            desc = 'General Options',
             args = {
                 readycheck = {
                     type = 'toggle',
@@ -109,14 +108,6 @@ RRL.options = {
                     order = 150,
                     cmdHidden = true,
                 },
-                dump = {
-                    type = 'execute',
-                    name = 'Dump State',
-                    desc = 'dump the member state and counts',
-                    func = 'Dump',
-                    hidden = true,
-                    order = 170,
-                },
                 divider2 = {
                     type = 'header',
                     name = 'Max Not Ready',
@@ -129,7 +120,7 @@ RRL.options = {
                     min  = 0,
                     max  = 10,
                     step = 1,
-                    set  = function(info, value) RRL:SetMax(1, 0, 10, value) end,
+                    set  = function(info, value) RRL.db.maxnotready[1] = value end,
                     get  = function(info) return RRL.db.maxnotready[1] end,
                     order = 190,
                     cmdHidden = true,
@@ -141,16 +132,18 @@ RRL.options = {
                     min  = 0,
                     max  = 25,
                     step = 1,
-                    set  = function(info, value) RRL:SetMax(2, 0, 25, value) end,
+                    set  = function(info, value) RRL.db.maxnotready[2] = value end,
                     get  = function(info) return RRL.db.maxnotready[2] end,
                     order = 200,
                     cmdHidden = true,
                 },
-                divider3 = {
-                    type = 'header',
-                    name = 'Critical Members',
-                    order = 210,
-                },
+            },
+        },
+        Critical = {
+            type = 'group',
+            name = 'Critical Members',
+            desc = 'Critical Members',
+            args = {
                 add = {
                     type = 'input',
                     name = 'Add',
@@ -210,6 +203,8 @@ RRL.options = {
     },
 }
 
+
+
 -- default profile
 RRL.defaults = {
     profile = {
@@ -222,29 +217,41 @@ RRL.defaults = {
         minionscale = 0.8,
         tooltipscale = 0.8,
         minionalpha = 1.0,
+        output = {
+          sink20OutputSink = "Default"
+        },
 	},
 }
 
--- set the max number of not ready members
-function RRL:SetMax(instancetype, min, max, value)
-	if value < min or value > max then
-		self:Print("max not ready members for", instancetype, "is", min .. '-' .. max)
-	else
-		RRL.db.maxnotready[instancetype] = value
-	end
+-- init options frames
+function RRL:InitOptions()
+    -- profiles
+    self.options.args.Profiles = LibStub("AceDBOptions-3.0"):GetOptionsTable(self.database)
+    -- output
+    self.options.args.Output = RRL:GetSinkAce3OptionsDataTable()
+    -- tell sink where to store its settings
+    self:SetSinkStorage(self.db.output)
+	-- slash commands
+	LibStub("AceConfig-3.0"):RegisterOptionsTable("RRLSlashCommand", self.optionsSlash, "rrl")
+    self.optionsSlash.args.profile = LibStub("AceDBOptions-3.0"):GetOptionsTable(self.database)
+    -- GUI config
+    local ACD3 = LibStub("AceConfigDialog-3.0")
+    LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("RRL", self.options)
+    self.optionsFrames = {}
+    self.optionsFrames.RRL = LibStub("tekKonfig-AboutPanel").new(nil, "RRL")
+    self.optionsFrames.Options = ACD3:AddToBlizOptions("RRL", "Options", "RRL", "Options")
+    self.optionsFrames.Output = ACD3:AddToBlizOptions("RRL", "Output", "RRL", "Output")
+    self.optionsFrames.Critical = ACD3:AddToBlizOptions("RRL", "Critical", "RRL", "Critical")
+    self.optionsFrames.Profiles = ACD3:AddToBlizOptions("RRL", "Profiles", "RRL", "Profiles")
 end
 
 -- set the update interval
 function RRL:SetInterval(info, interval)
-	if interval < 1 or interval > 600 then
-		self:Print("interval range: 1-600")
-	else
-		RRL.db.updateinterval = interval
-		self:CancelTimer(self.send_timer, true)
-        self:CancelTimer(self.maint_timer, true)
-		self.send_timer = self:ScheduleRepeatingTimer('SendStatus', interval)
-        self.maint_timer = self:ScheduleRepeatingTimer('MaintRoster', interval)
-	end
+  RRL.db.updateinterval = interval
+  self:CancelTimer(self.send_timer, true)
+  self:CancelTimer(self.maint_timer, true)
+  self.send_timer = self:ScheduleRepeatingTimer('SendStatus', interval)
+  self.maint_timer = self:ScheduleRepeatingTimer('MaintRoster', interval)
 end
 
 -- clears critical members

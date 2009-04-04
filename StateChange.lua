@@ -299,6 +299,9 @@ function RRL:CalcRaidReady()
     -- determine our max not ready number
     self.state.maxnotready = self.db.maxnotready[GetCurrentDungeonDifficulty()]
 
+    -- remember our existing state
+    local oldraidstate = self.state.ready.raid
+    
 	-- determine if the raid is ready
 	self.state.ready.raid = 1
 	if self.state.count.rrl.crit_notready > 0 then
@@ -316,6 +319,13 @@ function RRL:CalcRaidReady()
 	-- update our LDB text
     self:UpdateLDBText()
     if self.minion then self:UpdateMinion() end
+    
+    -- notify if the raid state has changed
+    if 0 == oldraidstate and 1 == self.state.ready.raid then
+        self:Pour("raid is READY", 0, 1, 0, nil, 24, "OUTLINE")
+    elseif 1 == oldraidstate and 0 == self.state.ready.raid then
+        self:Pour("raid is NOT READY", 1, 0, 0, nil, 24, "OUTLINE")
+    end
     
 end
 

@@ -8,8 +8,9 @@ RRL = LibStub("AceAddon-3.0"):NewAddon(
     "AceConsole-3.0",
     "AceComm-3.0",
     "AceEvent-3.0",
-	"AceTimer-3.0",
-	"AceHook-3.0"
+    "AceTimer-3.0",
+    "AceHook-3.0",
+    "LibSink-2.0"
 )
 
 -- tekDebug stuff
@@ -62,19 +63,7 @@ function RRL:OnInitialize()
 	self.database.RegisterCallback(self, "OnProfileReset", "OnProfileChanged")
 	-- get a local reference to our profile
 	self.db = self.database.profile
-    -- profile options
-    self.optionsSlash.args.profile = LibStub("AceDBOptions-3.0"):GetOptionsTable(self.database)
-    self.optionsSlash.args.profile.order = -2
-    self.options.args.Profiles = LibStub("AceDBOptions-3.0"):GetOptionsTable(self.database)
-    self.options.args.Profiles.order = -2
-	-- register options
-	LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("RRL", self.options)
-	LibStub("AceConfig-3.0"):RegisterOptionsTable("RRLSlashCommand", self.optionsSlash, "rrl")
-    -- set up GUI config frames
-    self.optionsFrames = {}
-    local ACD3 = LibStub("AceConfigDialog-3.0")
-	self.optionsFrames.rrl = ACD3:AddToBlizOptions("RRL", nil, nil, "General")
-    self.optionsFrames.Profiles = ACD3:AddToBlizOptions("RRL", "Profiles", "RRL", "Profiles")
+    self:InitOptions()
 end
 
 -- our profile has changed, get a new local reference
@@ -461,7 +450,7 @@ function RRL:PLAYER_DEAD()
 	if( UnitIsDeadOrGhost("player") ) then
 		if 1 == self.state.ready.self then
 			self:ToggleReady()
-			self:Print("you died; marking you as", c:Red("NOT READY"))
+			self:Pour("you died; marking you as NOT READY", 1, 0, 0, nil, 18, "OUTLINE")
 		end
 	end
 end
@@ -471,7 +460,7 @@ function RRL:PLAYER_FLAGS_CHANGED(event, member)
     self:Debug("player flags changed for", member)
 	if UnitIsUnit(member, "player") then
 		if 1 == self.state.ready.self and UnitIsAFK("player") then
-			self:Print("AFK: setting you", c:Red("NOT READY"))
+            self:Pour("AFK: setting you NOT READY", 1, 0, 0, nil, 18, "OUTLINE")
             self:ToggleReady()
 		end
 	end
@@ -490,10 +479,10 @@ end
 function RRL:READY_CHECK()
 	if 1 == self.state.ready.self then
 		ConfirmReadyCheck(true)
-		self:Print("responded", c:Green('READY'), "to a ready check for you")
+		self:Pour("responded READY to a ready check for you", 0, 1, 0, nil, 18, "OUTLINE")
 	else
 		ConfirmReadyCheck(false)
-        self:Print("responded", c:Red('NOT READY'), "to a ready check for you")
+        self:Pour("responded NOT READY to a ready check for you", 1, 0, 0, nil, 18, "OUTLINE")
 	end
 end
 

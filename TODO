@@ -14,11 +14,9 @@ TODO
 
 - change statechange.lua's wall-o-case into a matrix that defines what changes for each transition
 
-- make debug setting part of profile and changeable at runtime
-
 - make minion skinnable
 
-- add libsink support when raid status changes
+- add not ready reason to STATUS message (e.g. AFK, LowMana, etc.)
 
 #
 # EOF

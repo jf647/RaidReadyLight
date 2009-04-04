@@ -23,7 +23,7 @@ function RRL.ldb_obj.OnClick(frame, which)
 		RRL:ToggleReady()
 	elseif "RightButton" == which then
 		if IsControlKeyDown() then
-			InterfaceOptionsFrame_OpenToCategory(RRL.optionsFrames.rrl)
+			InterfaceOptionsFrame_OpenToCategory(RRL.optionsFrames.RRL)
 		elseif 1 == RRL.state.inraid then
 			DoReadyCheck()
 		end
