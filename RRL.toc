@@ -1,8 +1,8 @@
-## Interface: 30000
+## Interface: 30100
 ## Title: RRL (Raid Ready Light)
 ## Notes: Traffic Light Interface to Raid Ready Status
 ## Author: James FitzGibbon <addons@nadt.net>
-## Version: 0.17
+## Version: 0.18
 ## X-Revision: $Rev$
 ## SavedVariables: RRLDB
 ## OptionalDeps: tekDebug
