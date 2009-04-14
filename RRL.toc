@@ -2,7 +2,7 @@
 ## Title: RRL (Raid Ready Light)
 ## Notes: Traffic Light Interface to Raid Ready Status
 ## Author: James FitzGibbon <addons@nadt.net>
-## Version: 0.18
+## Version: 0.17
 ## X-Revision: $Rev$
 ## SavedVariables: RRLDB
 ## OptionalDeps: tekDebug
