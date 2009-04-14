@@ -1,0 +1,22 @@
+#
+# $Id$
+#
+
+TODO
+====
+
+- replace static text with locales
+  - use wowace's localization web site?  Can we do that if it's not in their SVN?
+
+- figure out why "everyone is ready" is displayed twice on ready check
+
+- consider adding a mana check to go auto-not-ready (and auto-ready when you go back up)
+
+- change statechange.lua's wall-o-case into a matrix that defines what changes for each transition
+
+- make minion skinnable
+
+- add not ready reason to STATUS message (e.g. AFK, LowMana, etc.)
+
+#
+# EOF

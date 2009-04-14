@@ -1,0 +1,5 @@
+<Bindings>
+  <Binding name="RRL_TOGGLEMINION" description="Toggle RRL Minion" header="RRL">
+    RRL:ToggleMinion();
+  </Binding>
+</Bindings>
