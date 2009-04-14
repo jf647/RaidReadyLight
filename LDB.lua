@@ -17,9 +17,6 @@ RRL.ldb_obj = LibStub("LibDataBroker-1.1"):NewDataObject("RRL", {
 	icon  = "Interface\\RAIDFRAME\\ReadyCheck-Waiting.png",
 })
 
--- locals
-local intooltip = false
-
 -- onclick handler
 function RRL.ldb_obj.OnClick(frame, which)
 	if "LeftButton" == which and 1 == RRL.state.inraid then
@@ -35,11 +32,6 @@ end
 
 -- on entering the LDB or minion frame
 function RRL.ldb_obj.OnEnter(frame)
-    -- for some reason we're getting OnEnter twice when mousing over
-    -- the LDB widget), causing the tooltip to double up.  Protect
-    -- using a boolean
-    if intooltip then return end
-    intooltip = true
     local tip = LibQTip:Acquire("RRLTooltip", 2, "LEFT", "RIGHT")
     tip:SetScale(RRL.db.tooltipscale)
     frame.tooltip = tip
@@ -121,7 +113,6 @@ end
 
 -- on leaving the LDB object or minion frame
 function RRL.ldb_obj.OnLeave(frame)
-    intooltip = false
     LibQTip:Release(frame.tooltip)
     frame.tooltip = nil
 end
