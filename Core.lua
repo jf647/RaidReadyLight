@@ -447,6 +447,7 @@ end
 
 -- check if we've died
 function RRL:PLAYER_DEAD()
+    return if not self.db.autonotready_death
 	if( UnitIsDeadOrGhost("player") ) then
 		if 1 == self.state.ready.self then
 			self:ToggleReady()
@@ -458,6 +459,7 @@ end
 -- check if we've gone AFK
 function RRL:PLAYER_FLAGS_CHANGED(event, member)
     self:Debug("player flags changed for", member)
+    return if not self.db.autonotready_afk
 	if UnitIsUnit(member, "player") then
 		if 1 == self.state.ready.self and UnitIsAFK("player") then
             self:Pour("AFK: setting you NOT READY", 1, 0, 0, nil, 18, "OUTLINE")

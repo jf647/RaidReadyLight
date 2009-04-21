@@ -62,6 +62,29 @@ RRL.options = {
                     name = 'Scales',
                     order = 130,
                 },
+                autonotready_afk = {
+                    type = 'toggle',
+                    name = 'Auto Not Ready on AFK',
+                    desc = 'toggle auto-not-ready on AFK',
+                    get  = function(info) return RRL.db.autonotready_afk end,
+                    set  = function(info) RRL.db.autonotready_afk = not RRL.db.autonotready_afk end,
+                    order = 131,
+                    cmdHidden = true,
+                },
+                autonotready_death = {
+                    type = 'toggle',
+                    name = 'Extended Tooltip',
+                    desc = 'toggle auto-not-ready on death',
+                    get  = function(info) return RRL.db.autonotready_death end,
+                    set  = function(info) RRL.db.autonotready_death = not RRL.db.autonotready_death end,
+                    order = 132,
+                    cmdHidden = true,
+                },
+                divider2 = {
+                    type = 'header',
+                    name = 'Scales',
+                    order = 139,
+                },
                 minionscale = {
                     type = 'range',
                     name = 'Minion Scale',
@@ -108,7 +131,7 @@ RRL.options = {
                     order = 150,
                     cmdHidden = true,
                 },
-                divider2 = {
+                divider3 = {
                     type = 'header',
                     name = 'Max Not Ready',
                     order = 180,
@@ -220,6 +243,8 @@ RRL.defaults = {
         output = {
           sink20OutputSink = "Default"
         },
+        autonotready_afk = true,
+        autonotready_death = true,
 	},
 }
 
