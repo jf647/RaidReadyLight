@@ -59,12 +59,12 @@ RRL.options = {
                 },
                 divider1 = {
                     type = 'header',
-                    name = 'Scales',
+                    name = 'Auto Not Ready Events',
                     order = 130,
                 },
                 autonotready_afk = {
                     type = 'toggle',
-                    name = 'Auto Not Ready on AFK',
+                    name = 'AFK',
                     desc = 'toggle auto-not-ready on AFK',
                     get  = function(info) return RRL.db.autonotready_afk end,
                     set  = function(info) RRL.db.autonotready_afk = not RRL.db.autonotready_afk end,
@@ -73,7 +73,7 @@ RRL.options = {
                 },
                 autonotready_death = {
                     type = 'toggle',
-                    name = 'Extended Tooltip',
+                    name = 'Death',
                     desc = 'toggle auto-not-ready on death',
                     get  = function(info) return RRL.db.autonotready_death end,
                     set  = function(info) RRL.db.autonotready_death = not RRL.db.autonotready_death end,
