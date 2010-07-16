@@ -1,5 +1,5 @@
 --
--- $Id$
+-- $Date$ $Revision$
 --
 
 -- external libs

@@ -1,5 +1,5 @@
 #
-# $Id$
+# $Date$ $Revision$
 #
 
 TODO
@@ -17,6 +17,12 @@ TODO
 - make minion skinnable
 
 - add not ready reason to STATUS message (e.g. AFK, LowMana, etc.)
+
+WoW 3.3 Compatibility
+---------------------
+
+- update externals
+- update TOC
 
 #
 # EOF
